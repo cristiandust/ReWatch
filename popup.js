@@ -202,6 +202,13 @@ function setupEventListeners() {
       saveAs: true
     });
   });
+
+  const donateButton = document.getElementById('donate-button');
+  if (donateButton) {
+    donateButton.addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://revolut.me/cristiandust' });
+    });
+  }
 }
 
 // Utility functions

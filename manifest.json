@@ -20,7 +20,9 @@
     "https://hianime.to/*",
     "https://*.hianime.to/*",
     "https://aniwatch.to/*",
-    "https://*.aniwatch.to/*"
+    "https://*.aniwatch.to/*",
+    "https://megacloud.blog/*",
+    "https://*.megacloud.blog/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -38,7 +40,9 @@
         "https://hianime.to/*",
         "https://*.hianime.to/*",
         "https://aniwatch.to/*",
-        "https://*.aniwatch.to/*"
+        "https://*.aniwatch.to/*",
+        "https://megacloud.blog/*",
+        "https://*.megacloud.blog/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle",

@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log('[ReWatch Background] Progress saved successfully');
       sendResponse({ success: true });
     }).catch(error => {
-      console.error('[ReWatch Background] Error saving progress:', error);
+    console.error('[ReWatch Background] Error saving progress:', error);
       sendResponse({ success: false, error: error.message });
     });
     return true; // Keep message channel open for async response

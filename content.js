@@ -2266,6 +2266,8 @@ class NetflixDetector extends PlatformDetector {
     sanitized = sanitized.replace(/\\x([0-9A-Fa-f]{2})/g, (_match, hex) => `\\u00${hex.toUpperCase()}`);
     sanitized = sanitized.replace(/[\u2028\u2029]/g, char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0').toUpperCase()}`);
 
+    sanitized = sanitized.replace(/\\([^"\\/bfnrtu])/g, (_match, char) => `\\\\${char}`);
+
     return sanitized;
   }
 
@@ -2849,7 +2851,6 @@ class VideoTracker {
 
     this.attachToVideo(mainVideo);
   }
-
   // Set up mutation observer to detect videos loaded after page load
   setupMutationObserver() {
     const observer = new MutationObserver(() => {
