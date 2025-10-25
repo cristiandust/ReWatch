@@ -2,6 +2,7 @@
 
 let allContent = [];
 let currentFilter = 'all';
+let searchQuery = '';
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,9 +46,24 @@ function renderContent() {
   const emptyState = document.getElementById('empty-state');
   
   // Filter content based on current filter
-  const filteredContent = currentFilter === 'all' 
+  const typeFiltered = currentFilter === 'all' 
     ? allContent 
     : allContent.filter(item => item.type === currentFilter);
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredContent = !normalizedQuery
+    ? typeFiltered
+    : typeFiltered.filter(item => {
+        const fields = [
+          item.title,
+          item.seriesTitle,
+          item.originalTitle,
+          item.episodeName,
+          item.platform
+        ].filter(Boolean).map(value => value.toLowerCase());
+
+        return fields.some(field => field.includes(normalizedQuery));
+      });
   
   if (filteredContent.length === 0) {
     contentList.innerHTML = '';
@@ -150,6 +166,15 @@ function setupEventListeners() {
       renderContent();
     });
   });
+
+  // Text filter
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value || '';
+      renderContent();
+    });
+  }
   
   // Clear completed button
   document.getElementById('clear-completed').addEventListener('click', async () => {
