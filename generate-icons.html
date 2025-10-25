@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h2>ReWatch Icon Generator</h2>
+  <p>This will generate placeholder icons. Right-click each canvas and "Save image as..."</p>
+  
+  <div style="margin: 20px 0;">
+    <h3>16x16</h3>
+    <canvas id="icon16" width="16" height="16" style="border: 1px solid #ccc; image-rendering: pixelated; width: 128px; height: 128px;"></canvas>
+  </div>
+  
+  <div style="margin: 20px 0;">
+    <h3>32x32</h3>
+    <canvas id="icon32" width="32" height="32" style="border: 1px solid #ccc; image-rendering: pixelated; width: 128px; height: 128px;"></canvas>
+  </div>
+  
+  <div style="margin: 20px 0;">
+    <h3>48x48</h3>
+    <canvas id="icon48" width="48" height="48" style="border: 1px solid #ccc; width: 128px; height: 128px;"></canvas>
+  </div>
+  
+  <div style="margin: 20px 0;">
+    <h3>128x128</h3>
+    <canvas id="icon128" width="128" height="128" style="border: 1px solid #ccc;"></canvas>
+  </div>
+
+  <script>
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+      
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // Draw play symbol
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const playSize = size * 0.4;
+      
+      ctx.moveTo(centerX - playSize * 0.3, centerY - playSize * 0.5);
+      ctx.lineTo(centerX - playSize * 0.3, centerY + playSize * 0.5);
+      ctx.lineTo(centerX + playSize * 0.5, centerY);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw progress arc
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = size * 0.08;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, playSize * 0.9, -Math.PI / 2, Math.PI * 0.8);
+      ctx.stroke();
+    }
+    
+    drawIcon('icon16', 16);
+    drawIcon('icon32', 32);
+    drawIcon('icon48', 48);
+    drawIcon('icon128', 128);
+  </script>
+</body>
+</html>

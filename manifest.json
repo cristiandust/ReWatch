@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "ReWatch - Streaming Progress Tracker",
+  "short_name": "ReWatch",
+  "version": "2.1.0",
+  "description": "ReWatch tracks viewing progress on Netflix, Disney+, HBO Max, and HiAnime with automatic episode and season detection.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://www.netflix.com/*",
+    "https://*.netflix.com/*",
+    "https://disneyplus.com/*",
+    "https://*.disneyplus.com/*",
+    "https://play.max.com/*",
+    "https://hbomax.com/*",
+    "https://*.hbomax.com/*",
+    "https://hianime.to/*",
+    "https://*.hianime.to/*",
+    "https://aniwatch.to/*",
+    "https://*.aniwatch.to/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.netflix.com/*",
+        "https://*.netflix.com/*",
+        "https://disneyplus.com/*",
+        "https://*.disneyplus.com/*",
+        "https://play.max.com/*",
+        "https://hbomax.com/*",
+        "https://*.hbomax.com/*",
+        "https://hianime.to/*",
+        "https://*.hianime.to/*",
+        "https://aniwatch.to/*",
+        "https://*.aniwatch.to/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

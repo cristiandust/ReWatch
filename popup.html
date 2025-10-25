@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReWatch</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+  <h1>ReWatch</h1>
+      <p class="subtitle">Your Streaming Progress Tracker</p>
+    </header>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-value" id="total-count">0</span>
+        <span class="stat-label">Tracked</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value" id="in-progress-count">0</span>
+        <span class="stat-label">In Progress</span>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="movie">Movies</button>
+      <button class="filter-btn" data-filter="episode">Episodes</button>
+    </div>
+
+    <div id="content-list" class="content-list">
+      <div class="loading">Loading your content...</div>
+    </div>
+
+    <div class="empty-state" id="empty-state" style="display: none;">
+      <p>No tracked content yet.</p>
+      <p class="empty-hint">Start watching something on a streaming platform!</p>
+    </div>
+
+    <footer>
+      <button id="clear-completed" class="btn-secondary">Clear Completed</button>
+      <button id="export-data" class="btn-secondary">Export Data</button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
