@@ -19,7 +19,7 @@ ReWatch/
 ├─ popup.js              # Popup logic (filters, export, open/delete actions)
 ├─ icons/                # Extension icons (16/32/48/128 px)
 ├─ docs/                 # Project documentation and marketing copy
-├─ __tests__/            # Jest-based automated tests (background worker)
+├─ tests__/            # Jest-based automated tests (background worker)
 ├─ package.json          # Node tooling configuration (Jest scripts, deps)
 ├─ .gitignore            # Source-control hygiene rules
 ```
