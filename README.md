@@ -1,6 +1,6 @@
 # ReWatch – Streaming Progress Tracker
 
-ReWatch is a Chrome extension that automatically tracks playback progress on Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, and Filmzie. It saves where you left off for each title, surfaces that history in a lightweight popup UI, and lets you resume or manage entries with a single click.
+ReWatch is a Chrome extension that automatically tracks playback progress across Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, and Filmzie. It saves where you left off for each title, surfaces that history in a lightweight popup UI, and lets you resume or manage entries with a single click.
 
 ---
 
@@ -210,7 +210,7 @@ A ready-to-publish privacy statement lives in [`privacy-policy.html`](privacy-po
 
 ## License
 
-MIT License. See the `LICENSE` file if one is included; otherwise treat the repository contents as MIT-licensed per this statement.
+The project is distributed under the **ReWatch Non-Commercial License**, which prohibits commercial use, redistribution, or sublicensing without explicit permission. See the [`LICENSE`](LICENSE) file for the full terms.
 
 ---
 
