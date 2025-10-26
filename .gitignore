@@ -1,0 +1,30 @@
+# Node and JavaScript dependencies
+node_modules/
+package-lock.json
+
+# Build artifacts
+*.zip
+*.crx
+dist/
+
+# Logs and reports
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log
+coverage/
+
+# VS Code
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Generated screenshots or assets
+screenshots/
+assets/generated/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

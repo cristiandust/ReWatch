@@ -42,6 +42,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+const normalizeUrlForComparison = (inputUrl) => {
+  if (!inputUrl || typeof inputUrl !== 'string') {
+    return null;
+  }
+
+  try {
+    const url = new URL(inputUrl);
+    return `${url.origin}${url.pathname}`;
+  } catch (_error) {
+    const withoutHash = inputUrl.split('#')[0];
+    return withoutHash.split('?')[0] || null;
+  }
+};
+
+const urlsRoughlyMatch = (candidateUrl, targetUrl) => {
+  const normalizedCandidate = normalizeUrlForComparison(candidateUrl);
+  const normalizedTarget = normalizeUrlForComparison(targetUrl);
+
+  if (normalizedCandidate && normalizedTarget && normalizedCandidate === normalizedTarget) {
+    return true;
+  }
+
+  if (typeof candidateUrl !== 'string' || typeof targetUrl !== 'string') {
+    return false;
+  }
+
+  return candidateUrl.includes(targetUrl) || targetUrl.includes(candidateUrl);
+};
+
 // Save viewing progress to Chrome storage
 async function saveProgress(progressData) {
   console.log('[ReWatch Background] Saving progress:', progressData);
@@ -225,19 +254,50 @@ async function saveProgress(progressData) {
   }
   
   console.log('[ReWatch Background] Save complete');
+
+  cleanupOldEntries().catch((error) => {
+    console.log('[ReWatch Background] Cleanup skipped:', error.message);
+  });
 }
 
 // Get progress for a specific URL
 async function getProgress(url) {
-  const result = await chrome.storage.local.get(null);
-  
-  // Find matching content by URL
-  for (const [key, value] of Object.entries(result)) {
-    if (value.url && value.url.includes(url) || url.includes(value.url)) {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+
+  const { trackedContent = [] } = await chrome.storage.local.get('trackedContent');
+  let fallbackMatch = null;
+
+  if (Array.isArray(trackedContent) && trackedContent.length > 0) {
+    const entries = await chrome.storage.local.get(trackedContent);
+    for (const key of trackedContent) {
+      const entry = entries[key];
+      if (!entry || typeof entry.url !== 'string') {
+        continue;
+      }
+
+      if (urlsRoughlyMatch(entry.url, url)) {
+        return entry;
+      }
+
+      if (!fallbackMatch && entry.url.includes(url)) {
+        fallbackMatch = entry;
+      }
+    }
+  }
+
+  if (fallbackMatch) {
+    return fallbackMatch;
+  }
+
+  const allEntries = await chrome.storage.local.get(null);
+  for (const value of Object.values(allEntries)) {
+    if (value && typeof value.url === 'string' && urlsRoughlyMatch(value.url, url)) {
       return value;
     }
   }
-  
+
   return null;
 }
 
@@ -274,15 +334,55 @@ function generateContentKey({ url, title, platform, type, seriesTitle }) {
 // Clean up old entries (optional - can be called periodically)
 async function cleanupOldEntries() {
   const result = await chrome.storage.local.get(null);
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  
-  for (const [key, value] of Object.entries(result)) {
-    if (value.lastWatched && new Date(value.lastWatched) < thirtyDaysAgo) {
-      if (value.percentComplete >= 95) {
-        // Remove completed content older than 30 days
-        await chrome.storage.local.remove(key);
-      }
+  const entries = { ...result };
+  const trackedContent = Array.isArray(entries.trackedContent) ? entries.trackedContent.slice() : [];
+  delete entries.trackedContent;
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const keysToRemove = [];
+
+  for (const [key, value] of Object.entries(entries)) {
+    if (!value || typeof value !== 'object') {
+      continue;
+    }
+
+    if (!value.lastWatched) {
+      continue;
+    }
+
+    const lastWatchedDate = new Date(value.lastWatched);
+    if (Number.isNaN(lastWatchedDate.getTime())) {
+      continue;
+    }
+
+    if (lastWatchedDate < sixMonthsAgo && Number.isFinite(value.percentComplete) && value.percentComplete >= 95) {
+      keysToRemove.push(key);
     }
   }
+
+  if (!keysToRemove.length) {
+    return;
+  }
+
+  await chrome.storage.local.remove(keysToRemove);
+
+  if (trackedContent.length) {
+    const filteredTracked = trackedContent.filter((key) => !keysToRemove.includes(key));
+    await chrome.storage.local.set({ trackedContent: filteredTracked });
+  }
+
+  console.log('[ReWatch Background] Cleaned up old entries:', keysToRemove);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    saveProgress,
+    getProgress,
+    cleanupOldEntries,
+    generateContentKey,
+    urlsRoughlyMatch,
+    normalizeUrlForComparison
+  };
 }
