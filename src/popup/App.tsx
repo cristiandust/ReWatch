@@ -1,4 +1,4 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionButton,
   ActionsRow,
@@ -29,7 +29,12 @@ import {
   Stats,
   Subtitle,
   Title,
-  TertiaryButton
+  TertiaryButton,
+  GlobalStyle,
+  Pagination,
+  PaginationButton,
+  PaginationInfo,
+  HeaderMeta
 } from './styled';
 
 type ContentType = 'movie' | 'episode';
@@ -73,10 +78,19 @@ type ChromeDownloads = {
   download: (options: { url: string; filename?: string; saveAs?: boolean }) => Promise<void> | void;
 };
 
+type ChromeRuntimeManifest = {
+  version?: string;
+};
+
+type ChromeRuntime = {
+  getManifest?: () => ChromeRuntimeManifest;
+};
+
 type ChromeApi = {
   storage?: ChromeStorage;
   tabs?: ChromeTabs;
   downloads?: ChromeDownloads;
+  runtime?: ChromeRuntime;
 };
 
 declare const chrome: ChromeApi | undefined;
@@ -135,6 +149,16 @@ const App = () => {
   const [filter, setFilter] = useState<FilterOption>('all');
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = 6;
+  const hasScrolledRef = useRef(false);
+  const version = useMemo(() => {
+    if (!chrome?.runtime?.getManifest) {
+      return '';
+    }
+    const manifest = chrome.runtime.getManifest();
+    return manifest.version ?? '';
+  }, []);
 
   const loadContent = useCallback(async () => {
     if (!chrome?.storage?.local) {
@@ -223,6 +247,54 @@ const App = () => {
     });
   }, [filter, items, search]);
 
+  useEffect(() => {
+    setPage(0);
+  }, [filter, search]);
+
+  const pageCount = useMemo(() => {
+    if (filteredItems.length === 0) {
+      return 0;
+    }
+    return Math.ceil(filteredItems.length / pageSize);
+  }, [filteredItems, pageSize]);
+
+  useEffect(() => {
+    if (pageCount === 0) {
+      if (page !== 0) {
+        setPage(0);
+      }
+      return;
+    }
+    if (page >= pageCount) {
+      setPage(pageCount - 1);
+    }
+  }, [page, pageCount]);
+
+  const currentPageIndex = pageCount === 0 ? 0 : Math.min(page, pageCount - 1);
+  const paginatedItems = useMemo(() => {
+    if (pageCount === 0) {
+      return [] as TrackedContent[];
+    }
+    const start = currentPageIndex * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [currentPageIndex, filteredItems, pageCount, pageSize]);
+
+  useEffect(() => {
+    if (!hasScrolledRef.current) {
+      hasScrolledRef.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPageIndex]);
+
+  const handlePrevPage = () => {
+    setPage((prev) => (prev > 0 ? prev - 1 : prev));
+  };
+
+  const handleNextPage = () => {
+    setPage((prev) => (pageCount === 0 || prev >= pageCount - 1 ? prev : prev + 1));
+  };
+
   const handleFilterChange = (value: FilterOption) => {
     setFilter(value);
   };
@@ -303,10 +375,13 @@ const App = () => {
   };
 
   return (
-    <Layout>
+    <>
+      <GlobalStyle />
+      <Layout>
       <Header>
         <Title>ReWatch</Title>
         <Subtitle>Your Streaming Progress Tracker</Subtitle>
+          {version ? <HeaderMeta>Version {version}</HeaderMeta> : null}
       </Header>
       <Stats>
         <StatCard>
@@ -340,7 +415,7 @@ const App = () => {
         <EmptyState>No tracked content yet. Start watching something on a supported platform.</EmptyState>
       ) : (
         <ContentList>
-          {filteredItems.map((item) => {
+          {paginatedItems.map((item) => {
             const percent = Math.round(item.percentComplete);
             const baseTitle = item.title || item.seriesTitle || item.originalTitle || 'Untitled';
             const badge = item.type === 'episode'
@@ -383,6 +458,23 @@ const App = () => {
           })}
         </ContentList>
       )}
+      {filteredItems.length > 0 && pageCount > 1 ? (
+        <Pagination>
+          <PaginationButton type="button" onClick={handlePrevPage} disabled={currentPageIndex === 0}>
+            Previous
+          </PaginationButton>
+          <PaginationInfo>
+            Page {currentPageIndex + 1} of {pageCount}
+          </PaginationInfo>
+          <PaginationButton
+            type="button"
+            onClick={handleNextPage}
+            disabled={pageCount === 0 || currentPageIndex >= pageCount - 1}
+          >
+            Next
+          </PaginationButton>
+        </Pagination>
+      ) : null}
       <Footer>
         <FooterActions>
           <SecondaryButton onClick={handleClearCompleted}>Clear Completed</SecondaryButton>
@@ -393,7 +485,8 @@ const App = () => {
           <TertiaryButton onClick={handleDonate}>Donate</TertiaryButton>
         </DonateRow>
       </Footer>
-    </Layout>
+      </Layout>
+    </>
   );
 };
 

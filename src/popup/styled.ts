@@ -1,7 +1,36 @@
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
+
+const GlobalStyle = createGlobalStyle`
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 400px;
+    min-height: 100%;
+    overflow-x: hidden;
+    background: transparent;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+  }
+
+  body {
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+`;
 
 const Layout = styled.div`
-  width: 400px;
+  width: 100%;
   padding: 24px 20px 28px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(180deg, #7b4bff 0%, #a874ff 100%);
@@ -16,6 +45,7 @@ const Header = styled.header`
   flex-direction: column;
   gap: 4px;
   margin-bottom: 16px;
+  text-align: center;
 `;
 
 const Title = styled.h1`
@@ -29,6 +59,13 @@ const Subtitle = styled.p`
   font-size: 12px;
   margin: 0;
   color: rgba(255, 255, 255, 0.8);
+`;
+
+const HeaderMeta = styled.span`
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  align-self: flex-end;
+  text-align: right;
 `;
 
 const Stats = styled.div`
@@ -47,6 +84,7 @@ const StatCard = styled.div`
   gap: 4px;
   box-shadow: 0 10px 24px rgba(57, 26, 123, 0.16);
   color: #2b1b5f;
+  text-align: center;
 `;
 
 const StatValue = styled.span`
@@ -102,9 +140,6 @@ const ContentList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: 360px;
-  overflow-y: auto;
-  padding-right: 4px;
 `;
 
 const EmptyState = styled.div`
@@ -257,6 +292,36 @@ const TertiaryButton = styled.button`
   box-shadow: 0 8px 18px rgba(98, 60, 234, 0.32);
 `;
 
+const Pagination = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+const PaginationButton = styled.button<{ disabled?: boolean }>`
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+  background: ${({ disabled }) => (disabled ? 'rgba(255, 255, 255, 0.18)' : '#ffffff')};
+  color: ${({ disabled }) => (disabled ? 'rgba(255, 255, 255, 0.6)' : '#623cea')};
+  box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 8px 18px rgba(98, 60, 234, 0.28)')};
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: ${({ disabled }) => (disabled ? 'none' : 'translateY(-1px)')};
+  }
+`;
+
 export {
   ActionButton,
   ActionsRow,
@@ -287,5 +352,11 @@ export {
   Stats,
   Subtitle,
   Title,
-  TertiaryButton
+  TertiaryButton,
+  Pagination,
+  PaginationButton,
+  PaginationInfo,
+  HeaderMeta
 };
+
+export { GlobalStyle };
