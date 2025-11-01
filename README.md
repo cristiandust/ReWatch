@@ -1,6 +1,6 @@
 # ReWatch – Streaming Progress Tracker
 
-ReWatch is a Chrome extension that automatically tracks playback progress across Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, and Filmzie. It saves where you left off for each title, surfaces that history in a lightweight popup UI, and lets you resume or manage entries with a single click.
+ReWatch is a Chrome extension that automatically captures playback progress on Netflix, Disney+, HBO Max, HiAnime, Tubi, Crunchyroll, Plex, and Filmzie. Platform detectors extract metadata for the active title, the tracker normalizes timestamps, and the background service worker persists everything in Chrome Storage so you can resume from the popup at any time.
 
 ---
 
@@ -10,208 +10,161 @@ ReWatch is a Chrome extension that automatically tracks playback progress across
 2. [Supported platforms](#supported-platforms)
 3. [Key features](#key-features)
 4. [Architecture](#architecture)
-5. [Permissions & host access](#permissions--host-access)
+5. [Permissions](#permissions)
 6. [Getting started](#getting-started)
 7. [Development workflow](#development-workflow)
-8. [Testing & quality checks](#testing--quality-checks)
+8. [Testing](#testing)
 9. [Build & packaging](#build--packaging)
-10. [Chrome Web Store submission checklist](#chrome-web-store-submission-checklist)
-11. [Troubleshooting](#troubleshooting)
-12. [Roadmap](#roadmap)
-13. [Privacy](#privacy)
-14. [License](#license)
+10. [Troubleshooting](#troubleshooting)
+11. [Roadmap](#roadmap)
+12. [Privacy](#privacy)
+13. [License](#license)
 
 ---
 
 ## Overview
 
-ReWatch installs a manifest v3 content script on the eleven supported streaming platforms listed below. Platform-specific detectors attach once an HTML5 `<video>` element becomes active, extract title, season, and episode metadata, then hand that payload to a shared video tracker. The tracker streams progress updates to the background service worker, which normalizes, deduplicates, and stores the data in Chrome Storage. The popup UI surfaces your aggregated watch history so you can resume, open, export, or prune entries with a single click.
+ReWatch ships as a Manifest V3 extension written in TypeScript and bundled with webpack. Content scripts register platform detectors on supported domains, discover the main HTML5 `<video>` element, and stream progress updates to a shared tracker. The tracker consolidates metadata, relays it to the background service worker, and the popup UI renders the aggregated history with quick actions (resume, open, delete, export).
 
 ## Supported platforms
 
-ReWatch currently supports the following services; each has a dedicated detector module:
+Each platform ships with a dedicated detector tuned for its DOM structure and playback quirks.
 
-| Platform          | Playback domains                                                                                                       |
-|-------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Netflix           | `https://www.netflix.com`                                                                                               |
-| Disney+           | `https://www.disneyplus.com`                                                                                            |
-| HBO Max           | `https://play.max.com`, `https://play.hbomax.com`, `https://www.hbomax.com`                                             |
-| HiAnime           | `https://hianime.to`, `https://aniwatch.to`, `https://megacloud.blog` and their subdomains                              |
-| YouTube           | `https://www.youtube.com`, `https://*.youtube.com`, `https://*.youtube-nocookie.com`                                    |
-| Tubi              | `https://tubitv.com` and subdomains                                                                                    |
-| Pluto TV          | `https://pluto.tv` and subdomains                                                                                       |
-| Crunchyroll       | `https://www.crunchyroll.com` and subdomains                                                                           |
-| The Roku Channel  | `https://therokuchannel.roku.com`                                                                                       |
-| Plex              | `https://app.plex.tv`, `https://*.plex.tv`                                                                             |
-| Filmzie           | `https://filmzie.com`, `https://*.filmzie.com`                                                                          |
-
-Other streaming sites are intentionally out of scope to keep the heuristics accurate and the requested permissions minimal.
+| Platform   | Playback domains |
+|------------|------------------|
+| Netflix    | `https://www.netflix.com` |
+| Disney+    | `https://www.disneyplus.com` |
+| HBO Max    | `https://play.max.com`, `https://play.hbomax.com`, `https://www.hbomax.com` |
+| HiAnime    | `https://hianime.to`, `https://aniwatch.to`, `https://megacloud.blog` and subdomains |
+| Tubi       | `https://tubitv.com` and subdomains |
+| Crunchyroll| `https://www.crunchyroll.com` and subdomains |
+| Plex       | `https://app.plex.tv`, `https://*.plex.tv` |
+| Filmzie    | `https://filmzie.com`, `https://*.filmzie.com` |
 
 ## Key features
 
-- **Automatic progress tracking** – Saves current time, duration, and completion percentage every five seconds (and on pause/end events) across all supported services.
-- **Platform-specific detectors** – Dedicated modules handle ad filtering, video selection, and metadata extraction for Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, and Filmzie.
-- **Smart background orchestration** – The service worker deduplicates episodic history per series, maintains a canonical key list, and prunes completed items older than six months.
-- **Resume prompts** – Offers to resume a title when returning with more than 30 seconds watched and less than 95% completion.
-- **Rich popup dashboard** – Filter by movies or episodes, view history chronologically, open content in a new tab, or delete entries.
-- **JSON export** – Download your entire watch history for backup or analysis.
-- **Local-first** – All data is stored in the browser via the Chrome Storage API; nothing leaves the device.
+- Automatic progress tracking across all supported platforms with five-second sampling plus pause/end flushes.
+- Platform-aware detectors that filter ads, pick the canonical `<video>`, and extract title, season, and episode metadata.
+- Background service worker that deduplicates episodic entries, prunes stale completions, and stores data locally.
+- Popup dashboard with movie/episode filters, resume buttons, quick links, deletion, and JSON export.
+- Local-first design: no analytics, no remote calls, and full control over stored history.
 
 ## Architecture
 
 ```
 ReWatch/
-├─ manifest.json          # Chrome extension manifest (MV3)
-├─ background.js          # Service worker: storage orchestration & deduplication
-├─ content/               # Modular content scripts (core helpers, detectors, tracker)
-│  ├─ core/               # Shared namespace, logging, DOM helpers, registry
-│  ├─ platform-detectors/ # One detector per streaming service
-│  └─ video-tracker/      # Runtime that wires detectors to storage messaging
-├─ popup.html             # Popup layout
-├─ popup.css              # Popup styles
-├─ popup.js               # Popup logic (filters, export, open/delete actions)
-├─ icons/                 # Extension icons (16/32/48/128 px)
-├─ docs/                  # Project documentation and marketing copy
-├─ tests__/             # Jest-based automated tests (background worker)
-├─ package.json           # Node tooling configuration (Jest scripts, deps)
-├─ .gitignore             # Source-control hygiene rules
-├─ debug.html/js          # Optional in-browser debugging helpers
-├─ dist/                  # Generated bundles/exports (ignored in git)
-└─ README.md              # This document
+├─ manifest.json               # MV3 manifest
+├─ src/
+│  ├─ background/              # TypeScript entry for the service worker
+│  ├─ content/
+│  │  ├─ core/                 # Namespace bootstrap, constants, DOM utilities, registry
+│  │  ├─ platform-detectors/   # Detector implementations (one per platform)
+│  │  └─ video-tracker/        # Tracker that wires detectors to background messaging
+│  └─ popup/                   # React popup UI (entry + components)
+├─ public/                     # Static assets copied by webpack (manifest, icons, html)
+├─ docs/                       # Architecture notes and marketing copy
+├─ tests__/                    # Jest tests for background logic
+├─ webpack.config.js           # Bundle configuration for background, content, popup
+├─ package.json                # npm scripts and dependencies
+└─ README.md                   # Project documentation
 ```
 
-### Platform detectors
+### Detector registry
 
-Each platform-specific detector extends `PlatformDetector` and registers itself through `content/core/platform-registry.js` so the tracker can discover it at runtime.
+Detectors extend `PlatformDetector` and register via the platform registry inside `src/content/core`. The registry selects the appropriate detector at runtime based on hostname.
 
-| Platform          | Detector file                                   |
-|-------------------|--------------------------------------------------|
-| Netflix           | `content/platform-detectors/netflix.js`          |
-| Disney+           | `content/platform-detectors/disney-plus.js`      |
-| HBO Max           | `content/platform-detectors/hbo-max.js`          |
-| HiAnime           | `content/platform-detectors/hianime.js`          |
-| YouTube           | `content/platform-detectors/youtube.js`          |
-| Tubi              | `content/platform-detectors/tubi.js`             |
-| Pluto TV          | `content/platform-detectors/pluto.js`            |
-| Crunchyroll       | `content/platform-detectors/crunchyroll.js`      |
-| The Roku Channel  | `content/platform-detectors/roku-channel.js`     |
-| Plex              | `content/platform-detectors/plex.js`             |
-| Filmzie           | `content/platform-detectors/filmzie.js`          |
+| Platform   | Detector |
+|------------|----------|
+| Netflix    | `src/content/platform-detectors/netflix.ts` |
+| Disney+    | `src/content/platform-detectors/disney-plus.ts` |
+| HBO Max    | `src/content/platform-detectors/hbo-max.ts` |
+| HiAnime    | `src/content/platform-detectors/hianime.ts` |
+| Tubi       | `src/content/platform-detectors/tubi.ts` |
+| Crunchyroll| `src/content/platform-detectors/crunchyroll.ts` |
+| Plex       | `src/content/platform-detectors/plex.ts` |
+| Filmzie    | `src/content/platform-detectors/filmzie.ts` |
 
-### Background service worker
+## Permissions
 
-`background.js` centralises persistence. It receives progress events from content scripts, generates stable content keys, merges episodic entries per series, and keeps `trackedContent` synchronized. A lightweight cleanup routine prunes completed items older than six months so the history stays manageable over time.
+| Permission | Purpose |
+|------------|---------|
+| `storage`  | Persist watch history and popup preferences locally. |
+| `tabs`     | Open tracked titles in new tabs from the popup. |
+| `downloads`| Export the stored history as JSON. |
+| Host access| Limit injection to the eight supported streaming domains. |
 
-### Execution flow
-
-1. **Content scripts (`content/`)** load on supported domains, use the platform registry to instantiate the correct detector, discover the primary `<video>`, and attach progress listeners.
-2. Extracted metadata is sent to **`background.js`** which normalizes the payload, persists it in Chrome Storage, deduplicates episodic entries per series, and prunes stale completed items.
-3. The **popup** reads the stored items, renders them with progress bars, and exposes management actions.
-
-## Permissions & host access
-
-| Type              | Value                                            | Reasoning                                                          |
-|-------------------|--------------------------------------------------|---------------------------------------------------------------------|
-| `storage`         | –                                                | Persist progress and popup preferences locally.                     |
-| `tabs`            | –                                                | Open tracked titles in new tabs from the popup.                     |
-| `downloads`       | –                                                | Export watch history as a JSON file.                                |
-| Host permissions  | Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, Filmzie domains | Inject content script only on supported streaming sites.            |
-
-No other network access or optional permissions are requested. Reviewers can confirm the extension never transmits data off-device.
+The extension is offline-first and does not contact external services.
 
 ## Getting started
 
-### Install from source (developer mode)
-
-1. **Clone the repository**
+1. Clone the repository:
    ```bash
    git clone https://github.com/cristian-dust/ReWatch.git
    cd ReWatch
+   npm install
    ```
-2. **Open Chrome’s extensions page** – navigate to `chrome://extensions/` and enable **Developer mode**.
-3. **Load the unpacked extension** – click **Load unpacked**, choose the project root (`ReWatch/`), and confirm the extension appears in the list.
-4. **Pin the action icon** (optional) – click the puzzle icon in the toolbar, then pin “ReWatch”.
-
-### Upgrading during development
-
-After editing any files, refresh the extension from `chrome://extensions/` (click the circular arrow on the ReWatch card) and reload the target streaming tab to re-run detection.
+2. Build the extension (development or production):
+   ```bash
+   npm run build:dev   # watch mode optional
+   npm run build       # production bundles in dist/
+   ```
+3. Load the unpacked extension from `dist/` via `chrome://extensions` with Developer Mode enabled.
+4. Pin the action icon if you want quick access to the popup.
 
 ## Development workflow
 
-- **Logging** – All runtime logs are prefixed with `[ReWatch]` (or `[ReWatch][Platform]`) and appear in the tab’s DevTools console for content scripts, or via the “service worker” link on the extensions page for background logs.
-- **Mutation observers** – The content script automatically redetects the main video when SPA navigation occurs; no manual reload is required on supported sites.
-- **Icon assets** – Replace the placeholder PNGs in `icons/` before shipping. Use `generate-icons.html` or your preferred design tool—Chrome Web Store requires crisp assets at all sizes.
+- Use `npm run build:dev` for an iterative build while adjusting detectors or popup code.
+- Logs from content scripts appear in the tab DevTools console; background logs are visible via the service worker link on `chrome://extensions`.
+- When testing SPA platforms, reload the page after a build so mutation observers can attach to the refreshed DOM.
 
-## Testing & quality checks
+## Testing
 
-Automated tests cover the background service worker via Jest (`npm install` then `npm test`). Use the following manual pass criteria to exercise the UI and detectors before release:
+- Automated: `npm test` runs Jest suites that cover background storage orchestration.
+- Manual smoke plan:
+  1. Play content on each supported platform and confirm progress entries appear in the popup.
+  2. Pause near completion to trigger resume prompts when reopening the page.
+  3. Validate JSON export and delete actions from the popup.
 
-1. **Playback smoke tests** – Start playback on every supported service (Netflix, Disney+, HBO Max, HiAnime, YouTube, Tubi, Pluto TV, Crunchyroll, The Roku Channel, Plex, Filmzie). For episodic catalogs, test both movies and episodes to ensure progress updates and series deduplication behave as expected.
-2. **Resume prompts** – Refresh the page after watching ≥30 seconds and confirm the resume overlay appears.
-3. **Popup QA** – Confirm filters, export, delete, and “open in new tab” actions work. Ensure the JSON export downloads successfully (requires the new `downloads` permission).
-4. **Storage inspection** – From `chrome://extensions/` → ReWatch → “Inspect views” → Service worker, check the console for warnings or errors.
-
-Document any manual results in release notes if submitting to the Chrome Web Store.
+Record manual results before store submissions or major releases.
 
 ## Build & packaging
 
-ReWatch has no build step—pack the existing sources as-is. Before packaging:
+1. Run `npm run build` to produce production bundles in `dist/`.
+2. Update `manifest.json` version fields to match the release.
+3. Zip the contents of `dist/` for Chrome Web Store upload. Example (PowerShell):
+   ```powershell
+   $root = "A:\Master Race\Repos\ReWatch"
+   $zipPath = "$root\dist\rewatch.zip"
+   Remove-Item $zipPath -ErrorAction SilentlyContinue
+   Compress-Archive -Path "$root\dist\*" -DestinationPath $zipPath
+   ```
 
-1. **Update the version** in `manifest.json` (`"version": "x.y.z"`). Chrome Web Store requires monotonically increasing versions.
-2. **Replace placeholder icons** in `icons/` with production-ready assets (16, 32, 48, 128 px PNG).
-3. **Review permissions** – Confirm only the required hosts are listed; adjust if new platforms were added.
-4. **Clear debug artifacts** – Remove residual logs or commented code that should not ship.
-
-### Create the ZIP (Windows PowerShell example)
-
-```powershell
-$root = "path\to\ReWatch"
-$zipPath = "$root\dist\rewatch-2.1.0.zip"
-New-Item -ItemType Directory -Force (Split-Path $zipPath) | Out-Null
-Compress-Archive -Path "$root\*" -DestinationPath $zipPath -Force
-```
-
-Ensure `dist/rewatch-2.1.0.zip` contains only the production assets—no `.git`, docs, or tooling directories if you prefer to exclude them.
-
-## Chrome Web Store submission checklist
-
-| Step | Description |
-|------|-------------|
-| 1 | Run through the manual QA checklist on every supported service. |
-| 2 | Verify `manifest.json` metadata (name, version, description, icons, permissions). |
-| 3 | Capture marketing assets: 1280×800 screenshots, 440×280 tile, optional promo video. |
-| 4 | Prepare the store listing text (short description ≤132 chars, full description ≤16k). |
-| 5 | Draft a privacy policy page (static HTML or hosted doc) explicitly stating data is stored locally only. |
-| 6 | Zip the extension as described above. |
-| 7 | Upload to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/), fill out listing metadata, upload assets, and submit for review. |
-| 8 | Monitor review feedback and address any policy questions (usually related to permissions or data use). |
+Ensure the archive only contains the files produced by the build pipeline plus required static assets.
 
 ## Troubleshooting
 
-- **Video not detected** – Wait until playback starts; SPA navigations (e.g., Disney+) may require a few seconds for the content script to attach to the new player.
-- **Resume overlay missing** – Ensure at least 30 seconds were watched and the title is under 95% complete.
-- **Incorrect metadata** – Check the console for `[ReWatch]` logs to see how the title or episode was parsed; some pages gate metadata behind delayed DOM updates.
-- **Export fails** – Confirm the `downloads` permission is granted and no browser policies block file downloads.
+- **Detector not firing**: confirm the domain matches one of the supported host patterns and that playback reached the main `<video>` element.
+- **Progress missing in popup**: inspect background logs for storage errors or skipped invalid pages.
+- **Export blocked**: verify browser policies allow downloads initiated by extensions.
+- **Stale entries**: use the popup delete action or clear Chrome Storage under the extension ID.
 
 ## Roadmap
 
-- Series grouping and progress insights in the popup
-- Optional data sync (Chrome Sync or user-provided backup destinations)
-- User-selectable platform toggles so permissions can be tailored per service
-- Automated unit tests for platform detectors
-
-Contributions are welcome via issues or pull requests.
+- Series grouping and richer analytics in the popup.
+- Optional sync connectors for user-managed backups.
+- Detector sandbox suite to harden against platform redesigns.
+- Broader automated coverage for content scripts.
 
 ## Privacy
 
-ReWatch stores all progress locally using the Chrome Storage API. No analytics, tracking pixels, or remote network calls are used. Users can delete their entire history from the popup or by clearing the extension’s storage area.
+All playback data remains local within Chrome Storage. No analytics, telemetry, or third-party APIs are invoked. Users may clear stored history at any time through the popup or by removing the extension.
 
-A ready-to-publish privacy statement lives in [`privacy-policy.html`](privacy-policy.html). Host this page publicly (for example, via GitHub Pages or another static host) and supply the public URL when submitting the Chrome Web Store listing.
+See [`privacy-policy.html`](privacy-policy.html) for a store-ready policy text.
 
 ## License
 
-The project is distributed under the **ReWatch Non-Commercial License**, which prohibits commercial use, redistribution, or sublicensing without explicit permission. See the [`LICENSE`](LICENSE) file for the full terms.
+ReWatch is distributed under the ReWatch Non-Commercial License. Review [`LICENSE`](LICENSE) for complete terms.
 
 ---
 
-Need help or want to report a bug? Open an issue in the repository and include reproduction steps plus any relevant `[ReWatch]` console output.
+Need assistance or found a regression? Open an issue with reproduction steps plus any relevant `[ReWatch]` console logs.

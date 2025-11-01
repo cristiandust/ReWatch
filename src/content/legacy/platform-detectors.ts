@@ -1,0 +1,9 @@
+import '../platform-detectors/base';
+import '../platform-detectors/hbo-max';
+import '../platform-detectors/disney-plus';
+import '../platform-detectors/hianime';
+import '../platform-detectors/netflix';
+import '../platform-detectors/tubi';
+import '../platform-detectors/crunchyroll';
+import '../platform-detectors/plex';
+import '../platform-detectors/filmzie';
