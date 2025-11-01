@@ -509,6 +509,7 @@ class VideoTracker {
 		try {
 			contextHostname = new URL(contextUrl).hostname.toLowerCase();
 		} catch (error) {
+			console.log('[ReWatch][Tracker] Failed to parse context URL:', (error as Error).message);
 			contextHostname = null;
 		}
 		const normalizedPlatform = metadata.platform ?? platformName ?? null;

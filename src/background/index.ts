@@ -90,7 +90,8 @@ const normalizeUrlForComparison = (inputUrl: string | null | undefined): string 
   try {
     const url = new URL(inputUrl);
     return `${url.origin}${url.pathname}`;
-  } catch (_error) {
+  } catch (error) {
+    console.log('[ReWatch][Background] Failed to normalize URL:', (error as Error).message);
     const withoutHash = inputUrl.split('#')[0] ?? '';
     return withoutHash.split('?')[0] ?? null;
   }

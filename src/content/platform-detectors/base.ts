@@ -42,7 +42,8 @@ class PlatformDetector {
 		return null;
 	}
 
-	inferEpisodeInfoFromTitle(_title: string | null): EpisodeInference | null {
+	inferEpisodeInfoFromTitle(title: string | null): EpisodeInference | null {
+		void title;
 		return null;
 	}
 
@@ -50,7 +51,8 @@ class PlatformDetector {
 		return null;
 	}
 
-	isValidPlaybackPage(_metadata?: Record<string, unknown>): boolean {
+	isValidPlaybackPage(metadata?: Record<string, unknown>): boolean {
+		void metadata;
 		return true;
 	}
 
@@ -58,7 +60,8 @@ class PlatformDetector {
 		return Array.isArray(videoElements) ? videoElements : [];
 	}
 
-	selectVideoElement(_videoElements?: VideoCollection): HTMLVideoElement | null {
+	selectVideoElement(videoElements?: VideoCollection): HTMLVideoElement | null {
+		void videoElements;
 		return null;
 	}
 }

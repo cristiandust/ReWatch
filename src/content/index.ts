@@ -1,1 +1,1 @@
-import './legacy/bootstrap';
+import './bootstrap';

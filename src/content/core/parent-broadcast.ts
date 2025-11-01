@@ -170,6 +170,7 @@ const parseCrunchyrollStructuredData = (): CrunchyrollStructuredInfo | null => {
 			const parsed = JSON.parse(content);
 			gatherStructuredNodes(parsed, nodes);
 		} catch (error) {
+			console.log('[ReWatch][ParentBroadcast] Structured data parsing failed:', (error as Error).message);
 			continue;
 		}
 	}

@@ -66,7 +66,8 @@ class CrunchyrollDetector extends PlatformDetector {
 				const candidateArea = Math.max(0, candidateRect.width) * Math.max(0, candidateRect.height);
 				const selectedArea = Math.max(0, selectedRect.width) * Math.max(0, selectedRect.height);
 				return candidateArea >= selectedArea ? candidate : selected;
-			} catch (_error) {
+			} catch (error) {
+				console.log('[ReWatch][Crunchyroll] Video selection metrics failed:', (error as Error).message);
 				return candidate;
 			}
 		}, null);

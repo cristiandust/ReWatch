@@ -749,7 +749,8 @@ class DisneyPlusDetector extends PlatformDetector {
 					if (selectors.some((selector) => {
 						try {
 							return (host as Element).matches(selector);
-						} catch (_error) {
+						} catch (error) {
+							console.log('[ReWatch][Disney+] Error evaluating shadow host selector:', (error as Error).message);
 							return false;
 						}
 					})) {

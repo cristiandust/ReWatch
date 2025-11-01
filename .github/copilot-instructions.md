@@ -14,6 +14,7 @@ This is a Chrome extension project that tracks viewing progress across streaming
 - Roku Channel
 - Tubi
 - YouTube
+- Brocoflix
 
 **Important:** Only these platforms are supported. Any other platform should be ignored.
 
