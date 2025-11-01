@@ -32,7 +32,7 @@ const initializeLogging = () => {
   if (core.loggingInitialized) {
     return;
   }
-  const REWATCH_DEBUG_LOGGING = false;
+  const REWATCH_DEBUG_LOGGING = true;
   const originalConsoleLog = console.log.bind(console);
   const patchedLog = (...args: Parameters<typeof console.log>) => {
     if (

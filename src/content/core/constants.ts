@@ -57,7 +57,8 @@ const initializeConstants = () => {
       'Tubi',
       'Crunchyroll',
       'Plex',
-      'Filmzie'
+      'Filmzie',
+      'Brocoflix'
     ]),
     MINIMUM_CLIP_DURATION_SECONDS: 5 * 60
   } as const;

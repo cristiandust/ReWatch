@@ -30,8 +30,12 @@
     "https://app.plex.tv/*",
     "https://*.plex.tv/*",
     "https://filmzie.com/*",
-    "https://*.filmzie.com/*"
-  ],
+    "https://*.filmzie.com/*",
+    "https://brocoflix.lat/*",
+    "https://*.brocoflix.lat/*",
+    "https://vidlink.pro/*",
+    "https://*.vidlink.pro/*"
+    ],
   "background": {
     "service_worker": "background.js"
   },
@@ -58,7 +62,11 @@
         "https://app.plex.tv/*",
         "https://*.plex.tv/*",
         "https://filmzie.com/*",
-        "https://*.filmzie.com/*"
+        "https://*.filmzie.com/*",
+        "https://brocoflix.lat/*",
+        "https://*.brocoflix.lat/*",
+        "https://vidlink.pro/*",
+        "https://*.vidlink.pro/*"
       ],
       "js": [
         "content.js"

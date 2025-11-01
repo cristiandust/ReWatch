@@ -15,4 +15,5 @@ import './platform-detectors/tubi';
 import './platform-detectors/crunchyroll';
 import './platform-detectors/plex';
 import './platform-detectors/filmzie';
+import './platform-detectors/brocoflix';
 import './video-tracker/tracker';

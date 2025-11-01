@@ -744,6 +744,9 @@ class VideoTracker {
 			if (hostname.includes('disneyplus')) {
 				return 'Disney+';
 			}
+			if (hostname.includes('brocoflix') || hostname.includes('vidlink')) {
+				return 'Brocoflix';
+			}
 			if (
 				hostname.includes('hianime') ||
 				hostname.includes('aniwatch') ||
@@ -767,11 +770,15 @@ class VideoTracker {
 
 	private extractEpisodeNumber(): number | null {
 		const namespaceWindow = window as TrackerWindow;
+		const platformDetector = this.getPlatformDetector();
+		const contentType = platformDetector?.getContentType?.() ?? null;
+		if (contentType === 'movie') {
+			return null;
+		}
 		if (window.self !== window.top && namespaceWindow.ReWatchParentEpisode !== undefined) {
 			console.log('[ReWatch] Using cached parent episode number:', namespaceWindow.ReWatchParentEpisode);
 			return namespaceWindow.ReWatchParentEpisode;
 		}
-		const platformDetector = this.getPlatformDetector();
 		if (platformDetector) {
 			try {
 				const episodeNum = platformDetector.extractEpisodeNumber?.();
@@ -806,7 +813,7 @@ class VideoTracker {
 			},
 			() => {
 				const reference = parentUrl ?? window.location;
-				const patterns = [/episode[_-]?(\d+)/i, /ep[_-]?(\d+)/i, /\/e(\d+)/i];
+				const patterns = [/episode[_-]?(\d+)/i, /ep[_-]?(\d+)/i];
 				for (const pattern of patterns) {
 					const match = reference.pathname.match(pattern);
 					if (match) {
@@ -831,11 +838,15 @@ class VideoTracker {
 
 	private extractSeasonNumber(): number | null {
 		const namespaceWindow = window as TrackerWindow;
+		const platformDetector = this.getPlatformDetector();
+		const contentType = platformDetector?.getContentType?.() ?? null;
+		if (contentType === 'movie') {
+			return null;
+		}
 		if (window.self !== window.top && namespaceWindow.ReWatchParentSeason !== undefined) {
 			console.log('[ReWatch] Using cached parent season number:', namespaceWindow.ReWatchParentSeason);
 			return namespaceWindow.ReWatchParentSeason;
 		}
-		const platformDetector = this.getPlatformDetector();
 		if (platformDetector) {
 			try {
 				const seasonNum = platformDetector.extractSeasonNumber?.();

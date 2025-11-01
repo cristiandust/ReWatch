@@ -229,11 +229,72 @@ const extractEpisodeFromHbo = (): number | null => {
 
 const detectEpisodeNumber = () => {
 	const isHboDomain = window.location.hostname.includes('hbo') || window.location.hostname.includes('max');
+	const isBrocoflixDomain = window.location.hostname.includes('brocoflix');
 
 	const methods: Array<() => number | null> = [
 		() => (isHboDomain ? extractEpisodeFromHbo() : null),
 		() => {
-			if (isHboDomain) {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const urlParams = new URLSearchParams(window.location.search);
+			const brocoflixParams = ['ep', 'episode'];
+			for (const param of brocoflixParams) {
+				const value = urlParams.get(param);
+				if (!value) {
+					continue;
+				}
+				const match = value.match(/(\d+)/);
+				if (match) {
+					console.log('[ReWatch Parent] Found Brocoflix episode from URL param:', match[1]);
+					return parseInt(match[1], 10);
+				}
+			}
+			return null;
+		},
+		() => {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const urlPath = window.location.pathname;
+			const patterns = [
+				/\/watch\/tv\/[^/]+\/season-\d+-episode-(\d+)/i,
+				/episode[_-]?(\d+)/i,
+				/ep[_-]?(\d+)/i
+			];
+			for (const pattern of patterns) {
+				const match = urlPath.match(pattern);
+				if (match) {
+					console.log('[ReWatch Parent] Found Brocoflix episode from URL path:', match[1]);
+					return parseInt(match[1], 10);
+				}
+			}
+			return null;
+		},
+		() => {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const activeSelectors = [
+				'[data-testid="episode-item"][aria-current="true"]',
+				'[data-testid="episode-item"].active',
+				'.episode-item.active',
+				'[data-selected="true"]'
+			];
+			for (const selector of activeSelectors) {
+				const activeElement = document.querySelector(selector);
+				if (activeElement && activeElement.textContent) {
+					const match = activeElement.textContent.match(/(\d+)/);
+					if (match) {
+						console.log('[ReWatch Parent] Found Brocoflix episode from active element:', match[1]);
+						return parseInt(match[1], 10);
+					}
+				}
+			}
+			return null;
+		},
+		() => {
+			if (isHboDomain || isBrocoflixDomain) {
 				return null;
 			}
 			const bodyText = document.body ? document.body.textContent ?? '' : '';
@@ -257,6 +318,9 @@ const detectEpisodeNumber = () => {
 			return null;
 		},
 		() => {
+			if (isBrocoflixDomain) {
+				return null;
+			}
 			const activeSelectors = [
 				'.ep-item.active',
 				'.episode-item.active',
@@ -279,6 +343,9 @@ const detectEpisodeNumber = () => {
 			return null;
 		},
 		() => {
+			if (isBrocoflixDomain) {
+				return null;
+			}
 			const urlParams = new URLSearchParams(window.location.search);
 			const possibleParams = ['ep', 'episode', 'episodeId', 'e'];
 			for (const param of possibleParams) {
@@ -295,6 +362,9 @@ const detectEpisodeNumber = () => {
 			return null;
 		},
 		() => {
+			if (isBrocoflixDomain) {
+				return null;
+			}
 			const urlPath = window.location.pathname;
 			const patterns = [
 				/episode[_-]?(\d+)/i,
@@ -358,11 +428,73 @@ const extractSeasonFromHbo = (): number | null => {
 
 const detectSeasonNumber = () => {
 	const isHboDomain = window.location.hostname.includes('hbo') || window.location.hostname.includes('max');
+	const isBrocoflixDomain = window.location.hostname.includes('brocoflix');
 
 	const methods: Array<() => number | null> = [
 		() => (isHboDomain ? extractSeasonFromHbo() : null),
 		() => {
-			if (isHboDomain) {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const urlParams = new URLSearchParams(window.location.search);
+			const brocoflixParams = ['season', 's'];
+			for (const param of brocoflixParams) {
+				const value = urlParams.get(param);
+				if (!value) {
+					continue;
+				}
+				const match = value.match(/(\d+)/);
+				if (match) {
+					console.log('[ReWatch Parent] Found Brocoflix season from URL param:', match[1]);
+					return parseInt(match[1], 10);
+				}
+			}
+			return null;
+		},
+		() => {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const url = window.location.href;
+			const patterns = [
+				/\/watch\/tv\/[^/]+\/season-(\d+)-episode-\d+/i,
+				/season[_-]?(\d+)/i,
+				/series[_-]?(\d+)/i,
+				/\/s(\d+)(?:e\d+)?/i
+			];
+			for (const pattern of patterns) {
+				const match = url.match(pattern);
+				if (match && parseInt(match[1], 10) > 0) {
+					console.log('[ReWatch Parent] Found Brocoflix season from URL:', match[1]);
+					return parseInt(match[1], 10);
+				}
+			}
+			return null;
+		},
+		() => {
+			if (!isBrocoflixDomain) {
+				return null;
+			}
+			const activeSelectors = [
+				'[data-testid="season-selector"] [aria-current="true"]',
+				'[data-testid="season-selector"] .active',
+				'.season-item.active',
+				'[data-testid="season-selector"] [data-selected="true"]'
+			];
+			for (const selector of activeSelectors) {
+				const activeElement = document.querySelector(selector);
+				if (activeElement && activeElement.textContent) {
+					const match = activeElement.textContent.match(/(\d+)/);
+					if (match) {
+						console.log('[ReWatch Parent] Found Brocoflix season from active element:', match[1]);
+						return parseInt(match[1], 10);
+					}
+				}
+			}
+			return null;
+		},
+		() => {
+			if (isHboDomain || isBrocoflixDomain) {
 				return null;
 			}
 			const bodyText = document.body ? document.body.textContent ?? '' : '';
@@ -385,6 +517,9 @@ const detectSeasonNumber = () => {
 			return null;
 		},
 		() => {
+			if (isBrocoflixDomain) {
+				return null;
+			}
 			const url = window.location.href;
 			const patterns = [
 				/season[_-]?(\d+)/i,
