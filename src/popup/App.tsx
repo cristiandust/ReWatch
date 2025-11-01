@@ -34,7 +34,8 @@ import {
   Pagination,
   PaginationButton,
   PaginationInfo,
-  HeaderMeta
+  HeaderMeta,
+  HeaderSurface
 } from './styled';
 
 type ContentType = 'movie' | 'episode';
@@ -378,11 +379,13 @@ const App = () => {
     <>
       <GlobalStyle />
       <Layout>
-      <Header>
-        <Title>ReWatch</Title>
-        <Subtitle>Your Streaming Progress Tracker</Subtitle>
-          {version ? <HeaderMeta>Version {version}</HeaderMeta> : null}
-      </Header>
+        <HeaderSurface>
+          <Header>
+            <Title>ReWatch</Title>
+            <Subtitle>Your Streaming Progress Tracker</Subtitle>
+            {version ? <HeaderMeta>Version {version}</HeaderMeta> : null}
+          </Header>
+        </HeaderSurface>
       <Stats>
         <StatCard>
           <StatValue>{stats.totalCount}</StatValue>

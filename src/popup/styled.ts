@@ -33,7 +33,18 @@ const Layout = styled.div`
   width: 100%;
   padding: 24px 20px 28px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(180deg, #7b4bff 0%, #a874ff 100%);
+  background: #f7f8ff;
+  color: #1e2040;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const HeaderSurface = styled.div`
+  background: linear-gradient(180deg, #6d4bff 0%, #9b76ff 100%);
+  border-radius: 24px;
+  padding: 22px 24px 20px;
+  box-shadow: 0 18px 34px rgba(109, 75, 255, 0.25);
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -44,7 +55,7 @@ const Header = styled.header`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 16px;
+  margin: 0;
   text-align: center;
 `;
 
@@ -72,7 +83,7 @@ const Stats = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin-bottom: 8px;
+  margin: 8px 0 0;
 `;
 
 const StatCard = styled.div`
@@ -102,22 +113,31 @@ const FilterRow = styled.div`
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(109, 75, 255, 0.12);
 `;
 
 const FilterButton = styled.button<{ $active: boolean }>`
   flex: 1;
-  padding: 9px 0;
+  padding: 10px 0;
   border-radius: 999px;
   border: none;
   font-size: 12px;
   font-weight: 600;
-  color: ${({ $active }) => ($active ? '#623cea' : 'rgba(255, 255, 255, 0.9)')};
-  background-color: ${({ $active }) => ($active ? '#ffffff' : 'rgba(255, 255, 255, 0.18)')};
-  transition: transform 0.2s ease;
+  color: ${({ $active }) => ($active ? '#ffffff' : '#6d4bff')};
+  background: ${({ $active }) =>
+    $active ? 'linear-gradient(180deg, #6d4bff 0%, #8c6bff 100%)' : 'transparent'};
+  box-shadow: ${({ $active }) =>
+    $active ? '0 14px 24px rgba(109, 75, 255, 0.25)' : 'none'};
+  transition: color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   cursor: pointer;
 
   &:hover {
-    transform: translateY(-1px);
+    color: ${({ $active }) => ($active ? '#ffffff' : '#482fde')};
+    background: ${({ $active }) =>
+      $active ? 'linear-gradient(180deg, #5f3ef7 0%, #7f5cf7 100%)' : 'rgba(109, 75, 255, 0.08)'};
   }
 `;
 
@@ -125,14 +145,14 @@ const SearchInput = styled.input`
   width: 100%;
   padding: 10px 14px;
   border-radius: 10px;
-  border: none;
+  border: 1px solid #e0e4ff;
   background-color: #ffffff;
-  color: #2b1b5f;
+  color: #1e2040;
   margin-bottom: 12px;
-  box-shadow: 0 8px 20px rgba(57, 26, 123, 0.14);
+  box-shadow: 0 6px 18px rgba(95, 104, 200, 0.12);
 
   &::placeholder {
-    color: #8f87b5;
+    color: #8b8fb5;
   }
 `;
 
@@ -144,7 +164,7 @@ const ContentList = styled.div`
 
 const EmptyState = styled.div`
   text-align: center;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(98, 60, 234, 0.7);
   font-size: 13px;
   margin: 40px 0;
 `;
@@ -261,8 +281,8 @@ const SecondaryButton = styled.button`
   padding: 10px 0;
   border-radius: 10px;
   border: none;
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
+  background: rgba(109, 75, 255, 0.08);
+  color: #6d4bff;
   font-size: 12px;
   cursor: pointer;
   backdrop-filter: blur(6px);
@@ -278,7 +298,7 @@ const DonateRow = styled.div`
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(35, 21, 79, 0.7);
 `;
 
 const TertiaryButton = styled.button`
@@ -302,7 +322,7 @@ const Pagination = styled.div`
 
 const PaginationInfo = styled.span`
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: #5f6281;
 `;
 
 const PaginationButton = styled.button<{ disabled?: boolean }>`
@@ -312,13 +332,15 @@ const PaginationButton = styled.button<{ disabled?: boolean }>`
   font-size: 12px;
   font-weight: 600;
   cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
-  background: ${({ disabled }) => (disabled ? 'rgba(255, 255, 255, 0.18)' : '#ffffff')};
-  color: ${({ disabled }) => (disabled ? 'rgba(255, 255, 255, 0.6)' : '#623cea')};
-  box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 8px 18px rgba(98, 60, 234, 0.28)')};
+  background: ${({ disabled }) =>
+    disabled ? '#e6e9ff' : 'linear-gradient(180deg, #6d4bff 0%, #8c6bff 100%)'};
+  color: ${({ disabled }) => (disabled ? '#9ba1d4' : '#ffffff')};
+  box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 10px 22px rgba(109, 75, 255, 0.25)')};
   transition: transform 0.2s ease;
 
   &:hover {
     transform: ${({ disabled }) => (disabled ? 'none' : 'translateY(-1px)')};
+    box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 14px 26px rgba(109, 75, 255, 0.3)')};
   }
 `;
 
@@ -339,6 +361,7 @@ export {
   Footer,
   FooterActions,
   Header,
+  HeaderSurface,
   Layout,
   MetaRow,
   PlatformLabel,
