@@ -1,6 +1,6 @@
 # ReWatch – Streaming Progress Tracker
 
-ReWatch is a Chrome extension that automatically captures playback progress on Netflix, Disney+, HBO Max, HiAnime, Tubi, Crunchyroll, Plex, and Filmzie. Platform detectors extract metadata for the active title, the tracker normalizes timestamps, and the background service worker persists everything in Chrome Storage so you can resume from the popup at any time.
+ReWatch is a Chrome extension that automatically captures playback progress on Netflix, Disney+, HBO Max, HiAnime, Tubi, Crunchyroll, Plex, Filmzie, and Brocoflix. Platform detectors extract metadata for the active title, the tracker normalizes timestamps, and the background service worker persists everything in Chrome Storage so you can resume from the popup at any time.
 
 ---
 
@@ -40,6 +40,7 @@ Each platform ships with a dedicated detector tuned for its DOM structure and pl
 | Crunchyroll| `https://www.crunchyroll.com` and subdomains |
 | Plex       | `https://app.plex.tv`, `https://*.plex.tv` |
 | Filmzie    | `https://filmzie.com`, `https://*.filmzie.com` |
+| Brocoflix  | `https://brocoflix.lat` and subdomains |
 
 ## Key features
 
@@ -83,6 +84,7 @@ Detectors extend `PlatformDetector` and register via the platform registry insid
 | Crunchyroll| `src/content/platform-detectors/crunchyroll.ts` |
 | Plex       | `src/content/platform-detectors/plex.ts` |
 | Filmzie    | `src/content/platform-detectors/filmzie.ts` |
+| Brocoflix  | `src/content/platform-detectors/brocoflix.ts` |
 
 ## Permissions
 
@@ -91,7 +93,7 @@ Detectors extend `PlatformDetector` and register via the platform registry insid
 | `storage`  | Persist watch history and popup preferences locally. |
 | `tabs`     | Open tracked titles in new tabs from the popup. |
 | `downloads`| Export the stored history as JSON. |
-| Host access| Limit injection to the eight supported streaming domains. |
+| Host access| Limit injection to the supported streaming domains (includes `brocoflix.lat` and embedded `vidlink.pro`). |
 
 The extension is offline-first and does not contact external services.
 
