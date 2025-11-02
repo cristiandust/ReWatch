@@ -33,19 +33,19 @@ const Layout = styled.div`
   width: 100%;
   padding: 24px 20px 28px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f7f8ff;
-  color: #1e2040;
+  background: #f5f5f5;
+  color: #333333;
   display: flex;
   flex-direction: column;
   gap: 16px;
 `;
 
 const HeaderSurface = styled.div`
-  background: linear-gradient(180deg, #6d4bff 0%, #9b76ff 100%);
+  background: linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%);
   border-radius: 24px;
   padding: 22px 24px 20px;
-  box-shadow: 0 18px 34px rgba(109, 75, 255, 0.25);
-  color: #ffffff;
+  box-shadow: 0 18px 34px rgba(100, 181, 246, 0.2);
+  color: #0f2a2e;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -74,7 +74,7 @@ const Subtitle = styled.p`
 
 const HeaderMeta = styled.span`
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   align-self: flex-end;
   text-align: right;
 `;
@@ -93,20 +93,20 @@ const StatCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: 0 10px 24px rgba(57, 26, 123, 0.16);
-  color: #2b1b5f;
+  box-shadow: 0 10px 24px rgba(51, 77, 92, 0.12);
+  color: #2f3a40;
   text-align: center;
 `;
 
 const StatValue = styled.span`
   font-size: 20px;
   font-weight: 600;
-  color: #623cea;
+  color: #4db6ac;
 `;
 
 const StatLabel = styled.span`
   font-size: 12px;
-  color: #7466a5;
+  color: #607d8b;
 `;
 
 const FilterRow = styled.div`
@@ -116,7 +116,7 @@ const FilterRow = styled.div`
   background: #ffffff;
   padding: 6px;
   border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(109, 75, 255, 0.12);
+  box-shadow: 0 10px 24px rgba(96, 125, 139, 0.12);
 `;
 
 const FilterButton = styled.button<{ $active: boolean }>`
@@ -126,18 +126,18 @@ const FilterButton = styled.button<{ $active: boolean }>`
   border: none;
   font-size: 12px;
   font-weight: 600;
-  color: ${({ $active }) => ($active ? '#ffffff' : '#6d4bff')};
+  color: ${({ $active }) => ($active ? '#ffffff' : '#607d8b')};
   background: ${({ $active }) =>
-    $active ? 'linear-gradient(180deg, #6d4bff 0%, #8c6bff 100%)' : 'transparent'};
+    $active ? 'linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%)' : 'transparent'};
   box-shadow: ${({ $active }) =>
-    $active ? '0 14px 24px rgba(109, 75, 255, 0.25)' : 'none'};
+    $active ? '0 14px 24px rgba(100, 181, 246, 0.25)' : 'none'};
   transition: color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   cursor: pointer;
 
   &:hover {
-    color: ${({ $active }) => ($active ? '#ffffff' : '#482fde')};
+    color: ${({ $active }) => ($active ? '#ffffff' : '#4f6571')};
     background: ${({ $active }) =>
-      $active ? 'linear-gradient(180deg, #5f3ef7 0%, #7f5cf7 100%)' : 'rgba(109, 75, 255, 0.08)'};
+      $active ? 'linear-gradient(180deg, #5aa5e5 0%, #45a69e 100%)' : 'rgba(79, 101, 113, 0.08)'};
   }
 `;
 
@@ -145,14 +145,14 @@ const SearchInput = styled.input`
   width: 100%;
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1px solid #e0e4ff;
+  border: 1px solid #d8dee6;
   background-color: #ffffff;
-  color: #1e2040;
+  color: #333333;
   margin-bottom: 12px;
-  box-shadow: 0 6px 18px rgba(95, 104, 200, 0.12);
+  box-shadow: 0 6px 18px rgba(96, 125, 139, 0.1);
 
   &::placeholder {
-    color: #8b8fb5;
+    color: #7a8a92;
   }
 `;
 
@@ -164,7 +164,7 @@ const ContentList = styled.div`
 
 const EmptyState = styled.div`
   text-align: center;
-  color: rgba(98, 60, 234, 0.7);
+  color: rgba(96, 125, 139, 0.7);
   font-size: 13px;
   margin: 40px 0;
 `;
@@ -176,8 +176,8 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 14px 30px rgba(57, 26, 123, 0.18);
-  color: #23154f;
+  box-shadow: 0 14px 30px rgba(51, 77, 92, 0.14);
+  color: #2f3a40;
 `;
 
 const CardHeader = styled.div`
@@ -193,17 +193,17 @@ const CardTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #23154f;
+  color: #2f3a40;
 `;
 
 const EpisodeName = styled.span`
-  color: #655a96;
+  color: #607d8b;
   font-size: 12px;
 `;
 
 const EpisodeBadge = styled.span`
-  background: #efe7ff;
-  color: #623cea;
+  background: #ddeef0;
+  color: #4db6ac;
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
@@ -211,20 +211,20 @@ const EpisodeBadge = styled.span`
 
 const PlatformLabel = styled.div`
   font-size: 12px;
-  color: #6d619b;
+  color: #607d8b;
 `;
 
 const ProgressBar = styled.div`
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: #ede7ff;
+  background: #dce4de;
   overflow: hidden;
 `;
 
 const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
-  background: linear-gradient(90deg, #623cea 0%, #8f67ff 100%);
+  background: linear-gradient(90deg, #81c784 0%, #4db6ac 100%);
   width: ${({ $percent }) => `${$percent}%`};
 `;
 
@@ -232,7 +232,7 @@ const MetaRow = styled.div`
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #6d619b;
+  color: #607d8b;
 `;
 
 const ActionsRow = styled.div`
@@ -248,9 +248,9 @@ const ActionButton = styled.button`
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  background: linear-gradient(180deg, #ffd672 0%, #f7a94a 100%);
-  color: #3a2767;
-  box-shadow: 0 10px 18px rgba(240, 166, 60, 0.3);
+  background: linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(79, 195, 196, 0.28);
   transition: transform 0.2s ease;
 
   &:hover {
@@ -259,9 +259,9 @@ const ActionButton = styled.button`
 `;
 
 const DeleteButton = styled(ActionButton)`
-  background: linear-gradient(180deg, #ff6b6b 0%, #f43f3f 100%);
+  background: linear-gradient(180deg, #ef9a9a 0%, #e57373 100%);
   color: #ffffff;
-  box-shadow: 0 10px 18px rgba(244, 63, 63, 0.25);
+  box-shadow: 0 10px 18px rgba(229, 115, 115, 0.25);
 `;
 
 const Footer = styled.footer`
@@ -281,8 +281,8 @@ const SecondaryButton = styled.button`
   padding: 10px 0;
   border-radius: 10px;
   border: none;
-  background: rgba(109, 75, 255, 0.08);
-  color: #6d4bff;
+  background: rgba(144, 202, 249, 0.15);
+  color: #607d8b;
   font-size: 12px;
   cursor: pointer;
   backdrop-filter: blur(6px);
@@ -298,7 +298,7 @@ const DonateRow = styled.div`
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: rgba(35, 21, 79, 0.7);
+  color: rgba(51, 77, 92, 0.7);
 `;
 
 const TertiaryButton = styled.button`
@@ -306,10 +306,10 @@ const TertiaryButton = styled.button`
   border-radius: 999px;
   border: none;
   background: #ffffff;
-  color: #623cea;
+  color: #90caf9;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(98, 60, 234, 0.32);
+  box-shadow: 0 8px 18px rgba(144, 202, 249, 0.28);
 `;
 
 const Pagination = styled.div`
@@ -322,7 +322,7 @@ const Pagination = styled.div`
 
 const PaginationInfo = styled.span`
   font-size: 12px;
-  color: #5f6281;
+  color: #607d8b;
 `;
 
 const PaginationButton = styled.button<{ disabled?: boolean }>`
@@ -333,14 +333,14 @@ const PaginationButton = styled.button<{ disabled?: boolean }>`
   font-weight: 600;
   cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
   background: ${({ disabled }) =>
-    disabled ? '#e6e9ff' : 'linear-gradient(180deg, #6d4bff 0%, #8c6bff 100%)'};
-  color: ${({ disabled }) => (disabled ? '#9ba1d4' : '#ffffff')};
-  box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 10px 22px rgba(109, 75, 255, 0.25)')};
+    disabled ? '#d8dee6' : 'linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%)'};
+  color: ${({ disabled }) => (disabled ? '#9ba7b0' : '#0f2a2e')};
+  box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 10px 22px rgba(100, 181, 246, 0.25)')};
   transition: transform 0.2s ease;
 
   &:hover {
     transform: ${({ disabled }) => (disabled ? 'none' : 'translateY(-1px)')};
-    box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 14px 26px rgba(109, 75, 255, 0.3)')};
+    box-shadow: ${({ disabled }) => (disabled ? 'none' : '0 14px 26px rgba(79, 195, 196, 0.28)')};
   }
 `;
 

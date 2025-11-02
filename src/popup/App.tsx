@@ -375,6 +375,15 @@ const App = () => {
     chrome.tabs.create({ url: 'https://revolut.me/cristiandust' });
   };
 
+  const handleShare = () => {
+    if (!chrome?.tabs) {
+      return;
+    }
+    chrome.tabs.create({
+      url: 'https://chromewebstore.google.com/detail/rewatch-streaming-progres/ckbcgcalfceokmjbkcghannbbbklfpij'
+    });
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -482,6 +491,9 @@ const App = () => {
         <FooterActions>
           <SecondaryButton onClick={handleClearCompleted}>Clear Completed</SecondaryButton>
           <SecondaryButton onClick={handleExport}>Export Data</SecondaryButton>
+        </FooterActions>
+        <FooterActions>
+          <SecondaryButton onClick={handleShare}>Share ReWatch</SecondaryButton>
         </FooterActions>
         <DonateRow>
           <span>Enjoy ReWatch? Help keep it improving.</span>

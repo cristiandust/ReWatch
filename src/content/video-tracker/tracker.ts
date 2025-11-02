@@ -1140,57 +1140,7 @@ class VideoTracker {
 		if (!document.body) {
 			return;
 		}
-		const overlay = document.createElement('div');
-		overlay.style.cssText = `
-			position: fixed;
-			bottom: 20px;
-			right: 20px;
-			background: rgba(0, 0, 0, 0.9);
-			color: white;
-			padding: 15px 20px;
-			border-radius: 8px;
-			z-index: 999999;
-			font-family: Arial, sans-serif;
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-		`;
-		const minutes = Math.floor(savedTime / 60);
-		const seconds = Math.floor(savedTime % 60);
-		const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-		overlay.innerHTML = `
-			<div style="margin-bottom: 10px;">Resume from ${timeString}?</div>
-			<button id="rw-resume" style="
-				background: #4CAF50;
-				color: white;
-				border: none;
-				padding: 8px 16px;
-				margin-right: 10px;
-				border-radius: 4px;
-				cursor: pointer;
-			">Resume</button>
-			<button id="rw-start-over" style="
-				background: #f44336;
-				color: white;
-				border: none;
-				padding: 8px 16px;
-				border-radius: 4px;
-				cursor: pointer;
-			">Start Over</button>
-		`;
-		document.body.appendChild(overlay);
-		document.getElementById('rw-resume')?.addEventListener('click', () => {
-			if (this.videoElement) {
-				this.videoElement.currentTime = savedTime;
-			}
-			overlay.remove();
-		});
-		document.getElementById('rw-start-over')?.addEventListener('click', () => {
-			overlay.remove();
-		});
-		window.setTimeout(() => {
-			if (overlay.parentNode) {
-				overlay.remove();
-			}
-		}, 10000);
+		void savedTime;
 	}
 
 	private checkDetectors(hostname: string, registry: PlatformRegistry<PlatformDetector>): PlatformDetector | null {

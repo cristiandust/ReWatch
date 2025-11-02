@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ReWatch - Streaming Progress Tracker",
   "short_name": "ReWatch",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "ReWatch tracks viewing progress on Netflix, Disney+, HBO Max, HiAnime, Tubi, Crunchyroll, Plex, and Filmzie with automatic metadata detection.",
   "permissions": [
     "storage",
