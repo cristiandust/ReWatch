@@ -10,7 +10,6 @@ This is a Chrome extension project that tracks viewing progress across streaming
 - HiAnime
 - Netflix
 - Plex
-- Pluto
 - Roku Channel
 - Tubi
 - YouTube

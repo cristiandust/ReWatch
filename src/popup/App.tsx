@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ChangeEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionButton,
   ActionsRow,
@@ -35,8 +35,37 @@ import {
   PaginationButton,
   PaginationInfo,
   HeaderMeta,
-  HeaderSurface
+  HeaderSurface,
+  InfoButton,
+  SearchRow,
+  InfoBackdrop,
+  InfoDialog,
+  InfoDialogHeader,
+  InfoDialogTitle,
+  InfoDialogCloseButton,
+  InfoDialogBody,
+  InfoList,
+  InfoListItem,
+  InfoPlatform,
+  InfoDomains
 } from './styled';
+
+type PlatformInfo = {
+  name: string;
+  domain: string;
+};
+
+const SUPPORTED_PLATFORMS: PlatformInfo[] = [
+  { name: 'Netflix', domain: 'https://www.netflix.com' },
+  { name: 'Disney+', domain: 'https://www.disneyplus.com' },
+  { name: 'HBO Max', domain: 'https://play.hbomax.com' },
+  { name: 'HiAnime', domain: 'https://hianime.to' },
+  { name: 'Tubi', domain: 'https://tubitv.com' },
+  { name: 'Crunchyroll', domain: 'https://www.crunchyroll.com' },
+  { name: 'Plex', domain: 'https://app.plex.tv' },
+  { name: 'Filmzie', domain: 'https://filmzie.com' },
+  { name: 'Brocoflix', domain: 'https://brocoflix.lat' }
+];
 
 type ContentType = 'movie' | 'episode';
 type FilterOption = 'all' | ContentType;
@@ -151,6 +180,7 @@ const App = () => {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [showInfo, setShowInfo] = useState(false);
   const pageSize = 6;
   const hasScrolledRef = useRef(false);
   const version = useMemo(() => {
@@ -384,6 +414,12 @@ const App = () => {
     });
   };
 
+  const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      setShowInfo(false);
+    }
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -416,11 +452,16 @@ const App = () => {
           Episodes
         </FilterButton>
       </FilterRow>
-      <SearchInput
-        placeholder="Filter by title, platform, or episode..."
-        value={search}
-        onChange={handleSearchChange}
-      />
+      <SearchRow>
+        <SearchInput
+          placeholder="Filter by title, platform, or episode..."
+          value={search}
+          onChange={handleSearchChange}
+        />
+        <InfoButton type="button" onClick={() => setShowInfo(true)}>
+          i
+        </InfoButton>
+      </SearchRow>
       {isLoading ? (
         <EmptyState>Loading your content...</EmptyState>
       ) : filteredItems.length === 0 ? (
@@ -500,6 +541,32 @@ const App = () => {
           <TertiaryButton onClick={handleDonate}>Donate</TertiaryButton>
         </DonateRow>
       </Footer>
+      {showInfo ? (
+        <InfoBackdrop onClick={handleBackdropClick}>
+          <InfoDialog>
+            <InfoDialogHeader>
+              <InfoDialogTitle>Supported Platforms</InfoDialogTitle>
+              <InfoDialogCloseButton type="button" onClick={() => setShowInfo(false)}>
+                ×
+              </InfoDialogCloseButton>
+            </InfoDialogHeader>
+            <InfoDialogBody>
+              <InfoList>
+                {SUPPORTED_PLATFORMS.map((platform) => (
+                  <InfoListItem key={platform.name}>
+                    <InfoPlatform>{platform.name}</InfoPlatform>
+                    <InfoDomains>
+                      <a href={platform.domain} target="_blank" rel="noopener noreferrer">
+                        {platform.domain}
+                      </a>
+                    </InfoDomains>
+                  </InfoListItem>
+                ))}
+              </InfoList>
+            </InfoDialogBody>
+          </InfoDialog>
+        </InfoBackdrop>
+      ) : null}
       </Layout>
     </>
   );

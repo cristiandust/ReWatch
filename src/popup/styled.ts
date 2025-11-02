@@ -79,6 +79,27 @@ const HeaderMeta = styled.span`
   text-align: right;
 `;
 
+const InfoButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(15, 42, 46, 0.18);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background: rgba(15, 42, 46, 0.3);
+    transform: translateY(-1px);
+  }
+`;
+
 const Stats = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -148,12 +169,18 @@ const SearchInput = styled.input`
   border: 1px solid #d8dee6;
   background-color: #ffffff;
   color: #333333;
-  margin-bottom: 12px;
   box-shadow: 0 6px 18px rgba(96, 125, 139, 0.1);
 
   &::placeholder {
     color: #7a8a92;
   }
+`;
+
+const SearchRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
 `;
 
 const ContentList = styled.div`
@@ -344,6 +371,117 @@ const PaginationButton = styled.button<{ disabled?: boolean }>`
   }
 `;
 
+const InfoBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 42, 46, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 20;
+  overflow-y: auto;
+  backdrop-filter: blur(2px);
+`;
+
+const InfoDialog = styled.div`
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(15, 42, 46, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 48px);
+`;
+
+const InfoDialogHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  background: linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%);
+  color: #ffffff;
+`;
+
+const InfoDialogTitle = styled.h2`
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const InfoDialogCloseButton = styled.button`
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+`;
+
+const InfoDialogBody = styled.div`
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+`;
+
+const InfoList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const InfoListItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  background: rgba(100, 181, 246, 0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  gap: 4px;
+`;
+
+const InfoPlatform = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #2f3a40;
+`;
+
+const InfoDomains = styled.span`
+  font-size: 11px;
+  color: #607d8b;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+
+  a {
+    color: #4db6ac;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
+const InfoActionRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 export {
   ActionButton,
   ActionsRow,
@@ -379,7 +517,20 @@ export {
   Pagination,
   PaginationButton,
   PaginationInfo,
-  HeaderMeta
+  HeaderMeta,
+  InfoButton,
+  SearchRow,
+  InfoBackdrop,
+  InfoDialog,
+  InfoDialogHeader,
+  InfoDialogTitle,
+  InfoDialogCloseButton,
+  InfoDialogBody,
+  InfoList,
+  InfoListItem,
+  InfoPlatform,
+  InfoDomains,
+  InfoActionRow
 };
 
 export { GlobalStyle };
