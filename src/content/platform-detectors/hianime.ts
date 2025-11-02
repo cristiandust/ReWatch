@@ -9,6 +9,8 @@ type HiAnimeWindow = typeof window & {
 };
 
 class HiAnimeDetector extends PlatformDetector {
+	static identifier = 'HiAnimeDetector';
+
 	canDetect(): boolean {
 		return this.hostname.includes('hianime') || this.hostname.includes('aniwatch');
 	}

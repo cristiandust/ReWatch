@@ -14,6 +14,8 @@ type VideoCollection = HTMLVideoElement[] | null | undefined;
 class PlatformDetector {
 	hostname: string;
 
+	static identifier?: string;
+
 	constructor(hostname: string) {
 		this.hostname = hostname;
 	}
@@ -63,6 +65,12 @@ class PlatformDetector {
 	selectVideoElement(videoElements?: VideoCollection): HTMLVideoElement | null {
 		void videoElements;
 		return null;
+	}
+
+	getIdentifier(): string | null {
+		const ctor = this.constructor as typeof PlatformDetector;
+		const value = typeof ctor.identifier === 'string' ? ctor.identifier.trim() : '';
+		return value.length > 0 ? value : null;
 	}
 }
 

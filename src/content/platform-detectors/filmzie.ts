@@ -11,6 +11,8 @@ type ReWatchWindow = typeof window & {
 const MIN_DURATION_SECONDS = 300;
 
 class FilmzieDetector extends PlatformDetector {
+	static identifier = 'FilmzieDetector';
+
 	canDetect(): boolean {
 		return /(^|\.)filmzie\.(com|tv)$/i.test(this.hostname);
 	}

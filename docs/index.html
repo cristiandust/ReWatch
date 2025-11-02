@@ -5,6 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ReWatch Privacy Policy</title>
   <style>
+    .nav {
+      background: #4338ca;
+      padding: 16px 20px;
+      box-shadow: 0 6px 24px rgba(67, 56, 202, 0.25);
+    }
+
+    nav {
+      max-width: 840px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    nav a {
+      color: #eef2ff;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    nav a:hover,
+    nav a[aria-current="page"] {
+      background: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
+    }
     body {
       font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
@@ -79,6 +108,14 @@
   </style>
 </head>
 <body>
+  <header class="nav">
+    <nav>
+      <a href="./landing.html">Landing</a>
+      <a href="./roadmap.md">Roadmap</a>
+      <a href="./beta.md">Beta guide</a>
+      <a href="./index.html" aria-current="page">Privacy</a>
+    </nav>
+  </header>
   <main>
     <h1>ReWatch Privacy Policy</h1>
     <p class="last-updated">Last updated: <strong>October 25, 2025</strong></p>

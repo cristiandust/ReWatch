@@ -17,6 +17,8 @@ type PlexWindow = typeof window & {
 const MIN_DURATION_SECONDS = 90;
 
 class PlexDetector extends PlatformDetector {
+	static identifier = 'PlexDetector';
+
 	private structuredData: UnknownRecord | null;
 	private structuredDataParsed: boolean;
 

@@ -16,6 +16,7 @@ This is a Chrome extension project that tracks viewing progress across streaming
 - Brocoflix
 
 **Important:** Only these platforms are supported. Any other platform should be ignored.
+**Important:** You will never read node_modules folder or any file inside it unless you really have to in which case you will ask for permission.
 
 ## Key Features
 - Platform-specific video player detection

@@ -1,4 +1,5 @@
 import React, { ChangeEvent, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DEFAULT_SETTINGS, type ReWatchSettings } from '@shared/settings';
 import {
   ActionButton,
   ActionsRow,
@@ -7,6 +8,16 @@ import {
   CardTitle,
   ContentList,
   DeleteButton,
+  DetectorBadge,
+  DetectorEmpty,
+  DetectorHeader,
+  DetectorItem,
+  DetectorList,
+  DetectorMeta,
+  DetectorRefresh,
+  DetectorRow,
+  DetectorSection,
+  DetectorTitle,
   DonateRow,
   EmptyState,
   EpisodeBadge,
@@ -15,13 +26,31 @@ import {
   FilterRow,
   Footer,
   FooterActions,
+  GlobalStyle,
   Header,
+  HeaderMeta,
+  HeaderSurface,
+  InfoBackdrop,
+  InfoButton,
+  InfoDialog,
+  InfoDialogBody,
+  InfoDialogCloseButton,
+  InfoDialogHeader,
+  InfoDialogTitle,
+  InfoDomains,
+  InfoList,
+  InfoListItem,
+  InfoPlatform,
   Layout,
   MetaRow,
+  Pagination,
+  PaginationButton,
+  PaginationInfo,
   PlatformLabel,
   ProgressBar,
   ProgressFill,
   SearchInput,
+  SearchRow,
   SecondaryButton,
   StatCard,
   StatLabel,
@@ -29,25 +58,7 @@ import {
   Stats,
   Subtitle,
   Title,
-  TertiaryButton,
-  GlobalStyle,
-  Pagination,
-  PaginationButton,
-  PaginationInfo,
-  HeaderMeta,
-  HeaderSurface,
-  InfoButton,
-  SearchRow,
-  InfoBackdrop,
-  InfoDialog,
-  InfoDialogHeader,
-  InfoDialogTitle,
-  InfoDialogCloseButton,
-  InfoDialogBody,
-  InfoList,
-  InfoListItem,
-  InfoPlatform,
-  InfoDomains
+  TertiaryButton
 } from './styled';
 
 type PlatformInfo = {
@@ -125,6 +136,48 @@ type ChromeApi = {
 
 declare const chrome: ChromeApi | undefined;
 
+type RuntimeResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+type DetectorStatusKind =
+  | 'detecting'
+  | 'detected'
+  | 'attached'
+  | 'no-video'
+  | 'metadata'
+  | 'error'
+  | 'navigation';
+
+type DetectorStatusEntry = {
+  platform: string | null;
+  detector: string | null;
+  status: DetectorStatusKind;
+  url: string | null;
+  details?: Record<string, unknown>;
+  timestamp: number;
+};
+
+type RuntimeBroadcast = {
+  action?: string;
+  settings?: ReWatchSettings;
+};
+
+type ExtendedRuntime = ChromeRuntime & {
+  sendMessage?: (message: Record<string, unknown>, responseCallback?: (response?: RuntimeResponse<unknown>) => void) => void;
+  lastError?: { message?: string };
+  onMessage?: {
+    addListener?: (
+      callback: (message: RuntimeBroadcast, sender: unknown, sendResponse: (response?: unknown) => void) => void
+    ) => void;
+    removeListener?: (
+      callback: (message: RuntimeBroadcast, sender: unknown, sendResponse: (response?: unknown) => void) => void
+    ) => void;
+  };
+};
+
 const isTrackedRecord = (value: unknown): value is Omit<TrackedContent, 'key'> => {
   if (!value || typeof value !== 'object') {
     return false;
@@ -174,6 +227,93 @@ const formatDate = (iso: string): string => {
   return date.toLocaleDateString();
 };
 
+const DETECTOR_STATUS_VALUES: readonly DetectorStatusKind[] = ['detecting', 'detected', 'attached', 'no-video', 'metadata', 'error', 'navigation'];
+
+const DETECTOR_TONE_MAP: Record<DetectorStatusKind, 'success' | 'warn' | 'info' | 'error'> = {
+  detecting: 'info',
+  detected: 'success',
+  attached: 'success',
+  'no-video': 'warn',
+  metadata: 'info',
+  error: 'error',
+  navigation: 'info'
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object';
+
+const normalizeDetectorEntries = (value: unknown): DetectorStatusEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const normalized: DetectorStatusEntry[] = [];
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const statusRaw = entry.status;
+    const timestampRaw = entry.timestamp;
+    if (typeof statusRaw !== 'string' || typeof timestampRaw !== 'number' || !Number.isFinite(timestampRaw)) {
+      continue;
+    }
+    if (!DETECTOR_STATUS_VALUES.includes(statusRaw as DetectorStatusKind)) {
+      continue;
+    }
+    const platform = typeof entry.platform === 'string' ? entry.platform : null;
+    const detector = typeof entry.detector === 'string' ? entry.detector : null;
+    const url = typeof entry.url === 'string' ? entry.url : null;
+    const details = isRecord(entry.details) ? (entry.details as Record<string, unknown>) : undefined;
+    normalized.push({
+      platform,
+      detector,
+      status: statusRaw as DetectorStatusKind,
+      url,
+      details,
+      timestamp: timestampRaw
+    });
+  }
+  return normalized;
+};
+
+const formatStatusLabel = (status: DetectorStatusKind): string =>
+  status
+    .split('-')
+    .map((segment) => (segment.length ? `${segment[0]?.toUpperCase() ?? ''}${segment.slice(1)}` : segment))
+    .join(' ');
+
+const formatDetectorTimestamp = (value: number): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const diffMs = Date.now() - date.getTime();
+  if (diffMs < 60000) {
+    return 'Just now';
+  }
+  if (diffMs < 3600000) {
+    const minutes = Math.floor(diffMs / 60000);
+    return `${minutes}m ago`;
+  }
+  if (diffMs < 86400000) {
+    const hours = Math.floor(diffMs / 3600000);
+    return `${hours}h ago`;
+  }
+  return date.toLocaleString();
+};
+
+const formatDetailValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(error instanceof Error ? error.message : value);
+    }
+  }
+  return String(value);
+};
+
 const App = () => {
   const [items, setItems] = useState<TrackedContent[]>([]);
   const [filter, setFilter] = useState<FilterOption>('all');
@@ -181,6 +321,11 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
+  const [settings, setSettings] = useState<ReWatchSettings>(DEFAULT_SETTINGS);
+  const [isSettingsSaving, setIsSettingsSaving] = useState(false);
+  const [detectorEntries, setDetectorEntries] = useState<DetectorStatusEntry[]>([]);
+  const [isDetectorLoading, setIsDetectorLoading] = useState(false);
+  const [isDetectorVisible, setIsDetectorVisible] = useState(false);
   const pageSize = 6;
   const hasScrolledRef = useRef(false);
   const version = useMemo(() => {
@@ -190,6 +335,52 @@ const App = () => {
     const manifest = chrome.runtime.getManifest();
     return manifest.version ?? '';
   }, []);
+
+  const callRuntime = useCallback(
+    <T,>(message: Record<string, unknown>): Promise<RuntimeResponse<T>> =>
+      new Promise((resolve) => {
+        const runtime = chrome?.runtime as ExtendedRuntime | undefined;
+        if (!runtime?.sendMessage) {
+          resolve({ success: false });
+          return;
+        }
+        const handleResponse = (response?: RuntimeResponse<unknown>) => {
+          if (runtime.lastError) {
+            resolve({ success: false, error: runtime.lastError.message });
+            return;
+          }
+          resolve((response as RuntimeResponse<T>) ?? { success: false });
+        };
+        try {
+          runtime.sendMessage(message, handleResponse);
+        } catch (error) {
+          resolve({ success: false, error: error instanceof Error ? error.message : String(error) });
+        }
+      }),
+    []
+  );
+
+  const loadSettings = useCallback(async () => {
+    const response = await callRuntime<ReWatchSettings>({ action: 'getSettings' });
+    setSettings((prev) => {
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return prev;
+    });
+  }, [callRuntime]);
+
+  const loadDetectorStatus = useCallback(async () => {
+    setIsDetectorLoading(true);
+    const response = await callRuntime<DetectorStatusEntry[]>({ action: 'getDetectorStatus' });
+    setDetectorEntries((prev) => {
+      if (response.success && response.data) {
+        return normalizeDetectorEntries(response.data);
+      }
+      return prev;
+    });
+    setIsDetectorLoading(false);
+  }, [callRuntime]);
 
   const loadContent = useCallback(async () => {
     if (!chrome?.storage?.local) {
@@ -236,6 +427,11 @@ const App = () => {
   }, [loadContent]);
 
   useEffect(() => {
+    loadSettings();
+    loadDetectorStatus();
+  }, [loadSettings, loadDetectorStatus]);
+
+  useEffect(() => {
     if (!chrome?.storage?.onChanged) {
       return;
     }
@@ -243,16 +439,44 @@ const App = () => {
       if (areaName !== 'local') {
         return;
       }
-      const relevant = Object.keys(changes).some((key) => key === 'trackedContent' || key.startsWith('content_'));
-      if (relevant) {
+      const keys = Object.keys(changes);
+      const contentChanged = keys.some((key) => key === 'trackedContent' || key.startsWith('content_'));
+      const settingsChanged = keys.includes('rewatch_settings');
+      const detectorChanged = keys.includes('rewatch_detector_status');
+      if (contentChanged) {
         loadContent();
+      }
+      if (settingsChanged) {
+        loadSettings();
+      }
+      if (detectorChanged) {
+        loadDetectorStatus();
       }
     };
     chrome.storage.onChanged.addListener(listener);
     return () => {
       chrome.storage?.onChanged?.removeListener(listener);
     };
-  }, [loadContent]);
+  }, [loadContent, loadDetectorStatus, loadSettings]);
+
+  useEffect(() => {
+    const runtime = chrome?.runtime as ExtendedRuntime | undefined;
+    if (!runtime?.onMessage?.addListener) {
+      return;
+    }
+    const handler = (message: RuntimeBroadcast) => {
+      if (!message || typeof message !== 'object') {
+        return;
+      }
+      if (message.action === 'settingsUpdated' && message.settings) {
+        setSettings(message.settings);
+      }
+    };
+    runtime.onMessage.addListener(handler);
+    return () => {
+      runtime.onMessage?.removeListener?.(handler);
+    };
+  }, []);
 
   const stats = useMemo(() => {
     const totalCount = items.length;
@@ -398,6 +622,29 @@ const App = () => {
     });
   };
 
+  const handleToggleDebug = useCallback(async () => {
+    if (isSettingsSaving) {
+      return;
+    }
+    setIsSettingsSaving(true);
+    const nextEnabled = !settings.debugLoggingEnabled;
+    const response = await callRuntime<ReWatchSettings>({ action: 'updateSettings', settings: { debugLoggingEnabled: nextEnabled } });
+    if (response.success && response.data) {
+      setSettings(response.data);
+    } else {
+      await loadSettings();
+    }
+    setIsSettingsSaving(false);
+  }, [callRuntime, isSettingsSaving, loadSettings, settings.debugLoggingEnabled]);
+
+  const handleDetectorRefresh = useCallback(() => {
+    loadDetectorStatus();
+  }, [loadDetectorStatus]);
+
+  const handleDetectorToggle = useCallback(() => {
+    setIsDetectorVisible((prev) => !prev);
+  }, []);
+
   const handleDonate = () => {
     if (!chrome?.tabs) {
       return;
@@ -420,6 +667,9 @@ const App = () => {
     }
   };
 
+  const toggleEnabled = settings.debugLoggingEnabled;
+  const hasDetectorEntries = detectorEntries.length > 0;
+
   return (
     <>
       <GlobalStyle />
@@ -431,142 +681,198 @@ const App = () => {
             {version ? <HeaderMeta>Version {version}</HeaderMeta> : null}
           </Header>
         </HeaderSurface>
-      <Stats>
-        <StatCard>
-          <StatValue>{stats.totalCount}</StatValue>
-          <StatLabel>Tracked</StatLabel>
-        </StatCard>
-        <StatCard>
-          <StatValue>{stats.inProgressCount}</StatValue>
-          <StatLabel>In Progress</StatLabel>
-        </StatCard>
-      </Stats>
-      <FilterRow>
-        <FilterButton $active={filter === 'all'} onClick={() => handleFilterChange('all')}>
-          All
-        </FilterButton>
-        <FilterButton $active={filter === 'movie'} onClick={() => handleFilterChange('movie')}>
-          Movies
-        </FilterButton>
-        <FilterButton $active={filter === 'episode'} onClick={() => handleFilterChange('episode')}>
-          Episodes
-        </FilterButton>
-      </FilterRow>
-      <SearchRow>
-        <SearchInput
-          placeholder="Filter by title, platform, or episode..."
-          value={search}
-          onChange={handleSearchChange}
-        />
-        <InfoButton type="button" onClick={() => setShowInfo(true)}>
-          i
-        </InfoButton>
-      </SearchRow>
-      {isLoading ? (
-        <EmptyState>Loading your content...</EmptyState>
-      ) : filteredItems.length === 0 ? (
-        <EmptyState>No tracked content yet. Start watching something on a supported platform.</EmptyState>
-      ) : (
-        <ContentList>
-          {paginatedItems.map((item) => {
-            const percent = Math.round(item.percentComplete);
-            const baseTitle = item.title || item.seriesTitle || item.originalTitle || 'Untitled';
-            const badge = item.type === 'episode'
-              ? item.seasonNumber && item.episodeNumber
-                ? `S${item.seasonNumber} E${item.episodeNumber}`
-                : item.seasonNumber
-                ? `Season ${item.seasonNumber}`
-                : item.episodeNumber
-                ? `Ep ${item.episodeNumber}`
-                : ''
-              : '';
-            return (
-              <Card key={item.key}>
-                <CardHeader>
-                  <CardTitle>
-                    <span>{baseTitle}</span>
-                    {item.type === 'episode' && item.episodeName ? (
-                      <EpisodeName>– {item.episodeName}</EpisodeName>
-                    ) : null}
-                    {badge ? <EpisodeBadge>{badge}</EpisodeBadge> : null}
-                  </CardTitle>
-                  <EpisodeBadge>{item.type}</EpisodeBadge>
-                </CardHeader>
-                <PlatformLabel>{item.platform}</PlatformLabel>
-                <ProgressBar>
-                  <ProgressFill $percent={percent} />
-                </ProgressBar>
-                <MetaRow>
-                  <span>
-                    {formatTime(item.currentTime)} / {formatTime(item.duration)} ({percent}%)
-                  </span>
-                  <span>{formatDate(item.lastWatched)}</span>
-                </MetaRow>
-                <ActionsRow>
-                  <ActionButton onClick={() => handleOpen(item.url)}>Open</ActionButton>
-                  <DeleteButton onClick={() => handleDelete(item.key)}>Delete</DeleteButton>
-                </ActionsRow>
-              </Card>
-            );
-          })}
-        </ContentList>
-      )}
-      {filteredItems.length > 0 && pageCount > 1 ? (
-        <Pagination>
-          <PaginationButton type="button" onClick={handlePrevPage} disabled={currentPageIndex === 0}>
-            Previous
-          </PaginationButton>
-          <PaginationInfo>
-            Page {currentPageIndex + 1} of {pageCount}
-          </PaginationInfo>
-          <PaginationButton
-            type="button"
-            onClick={handleNextPage}
-            disabled={pageCount === 0 || currentPageIndex >= pageCount - 1}
-          >
-            Next
-          </PaginationButton>
-        </Pagination>
-      ) : null}
-      <Footer>
-        <FooterActions>
-          <SecondaryButton onClick={handleClearCompleted}>Clear Completed</SecondaryButton>
-          <SecondaryButton onClick={handleExport}>Export Data</SecondaryButton>
-        </FooterActions>
-        <FooterActions>
-          <SecondaryButton onClick={handleShare}>Share ReWatch</SecondaryButton>
-        </FooterActions>
-        <DonateRow>
-          <span>Enjoy ReWatch? Help keep it improving.</span>
-          <TertiaryButton onClick={handleDonate}>Donate</TertiaryButton>
-        </DonateRow>
-      </Footer>
-      {showInfo ? (
-        <InfoBackdrop onClick={handleBackdropClick}>
-          <InfoDialog>
-            <InfoDialogHeader>
-              <InfoDialogTitle>Supported Platforms</InfoDialogTitle>
-              <InfoDialogCloseButton type="button" onClick={() => setShowInfo(false)}>
-                ×
-              </InfoDialogCloseButton>
-            </InfoDialogHeader>
-            <InfoDialogBody>
-              <InfoList>
-                {SUPPORTED_PLATFORMS.map((platform) => (
-                  <InfoListItem key={platform.name}>
-                    <InfoPlatform>{platform.name}</InfoPlatform>
-                    <InfoDomains>
-                      <a href={platform.domain} target="_blank" rel="noopener noreferrer">
-                        {platform.domain}
-                      </a>
-                    </InfoDomains>
-                  </InfoListItem>
-                ))}
-              </InfoList>
-            </InfoDialogBody>
-          </InfoDialog>
-        </InfoBackdrop>
-      ) : null}
+        <Stats>
+          <StatCard>
+            <StatValue>{stats.totalCount}</StatValue>
+            <StatLabel>Tracked</StatLabel>
+          </StatCard>
+          <StatCard>
+            <StatValue>{stats.inProgressCount}</StatValue>
+            <StatLabel>In Progress</StatLabel>
+          </StatCard>
+        </Stats>
+        <DetectorSection>
+          <DetectorHeader>
+            <DetectorTitle>Detector Health</DetectorTitle>
+            <ActionsRow>
+              <DetectorRefresh type="button" onClick={handleDetectorRefresh} disabled={isDetectorLoading}>
+                {isDetectorLoading ? 'Refreshing...' : 'Refresh'}
+              </DetectorRefresh>
+              <DetectorRefresh type="button" onClick={handleDetectorToggle}>
+                {isDetectorVisible ? 'Hide' : 'Show'}
+              </DetectorRefresh>
+            </ActionsRow>
+          </DetectorHeader>
+          {isDetectorVisible ? (
+            isDetectorLoading ? (
+              <DetectorEmpty>Collecting detector activity...</DetectorEmpty>
+            ) : hasDetectorEntries ? (
+              <DetectorList>
+                {detectorEntries.map((entry) => {
+                  const tone = DETECTOR_TONE_MAP[entry.status];
+                  const timestampLabel = formatDetectorTimestamp(entry.timestamp);
+                  const detectorLabel = entry.detector ? `Detector: ${entry.detector}` : 'Detector: n/a';
+                  const detailEntries = entry.details ? Object.entries(entry.details) : [];
+                  return (
+                    <DetectorItem key={`${entry.platform ?? 'unknown'}|${entry.detector ?? 'unknown'}|${entry.timestamp}`}>
+                      <DetectorRow>
+                        <span>{entry.platform ?? 'Unknown platform'}</span>
+                        <DetectorBadge $tone={tone}>{formatStatusLabel(entry.status)}</DetectorBadge>
+                      </DetectorRow>
+                      <DetectorMeta>
+                        <span>{detectorLabel}</span>
+                        <span>{timestampLabel}</span>
+                        {entry.url ? (
+                          <a href={entry.url} target="_blank" rel="noopener noreferrer">
+                            Open page
+                          </a>
+                        ) : null}
+                      </DetectorMeta>
+                      {detailEntries.length ? (
+                        <DetectorMeta>
+                          {detailEntries.map(([detailKey, detailValue]) => (
+                            <span key={detailKey}>{`${detailKey}: ${formatDetailValue(detailValue)}`}</span>
+                          ))}
+                        </DetectorMeta>
+                      ) : null}
+                    </DetectorItem>
+                  );
+                })}
+              </DetectorList>
+            ) : (
+              <DetectorEmpty>No detector activity recorded recently.</DetectorEmpty>
+            )
+          ) : null}
+        </DetectorSection>
+        <FilterRow>
+          <FilterButton $active={filter === 'all'} onClick={() => handleFilterChange('all')}>
+            All
+          </FilterButton>
+          <FilterButton $active={filter === 'movie'} onClick={() => handleFilterChange('movie')}>
+            Movies
+          </FilterButton>
+          <FilterButton $active={filter === 'episode'} onClick={() => handleFilterChange('episode')}>
+            Episodes
+          </FilterButton>
+        </FilterRow>
+        <SearchRow>
+          <SearchInput
+            placeholder="Filter by title, platform, or episode..."
+            value={search}
+            onChange={handleSearchChange}
+          />
+          <InfoButton type="button" onClick={() => setShowInfo(true)}>
+            i
+          </InfoButton>
+        </SearchRow>
+        {isLoading ? (
+          <EmptyState>Loading your content...</EmptyState>
+        ) : filteredItems.length === 0 ? (
+          <EmptyState>No tracked content yet. Start watching something on a supported platform.</EmptyState>
+        ) : (
+          <ContentList>
+            {paginatedItems.map((item) => {
+              const percent = Math.round(item.percentComplete);
+              const baseTitle = item.title || item.seriesTitle || item.originalTitle || 'Untitled';
+              const badge = item.type === 'episode'
+                ? item.seasonNumber && item.episodeNumber
+                  ? `S${item.seasonNumber} E${item.episodeNumber}`
+                  : item.seasonNumber
+                  ? `Season ${item.seasonNumber}`
+                  : item.episodeNumber
+                  ? `Ep ${item.episodeNumber}`
+                  : ''
+                : '';
+              return (
+                <Card key={item.key}>
+                  <CardHeader>
+                    <CardTitle>
+                      <span>{baseTitle}</span>
+                      {item.type === 'episode' && item.episodeName ? (
+                        <EpisodeName>– {item.episodeName}</EpisodeName>
+                      ) : null}
+                      {badge ? <EpisodeBadge>{badge}</EpisodeBadge> : null}
+                    </CardTitle>
+                    <EpisodeBadge>{item.type}</EpisodeBadge>
+                  </CardHeader>
+                  <PlatformLabel>{item.platform}</PlatformLabel>
+                  <ProgressBar>
+                    <ProgressFill $percent={percent} />
+                  </ProgressBar>
+                  <MetaRow>
+                    <span>
+                      {formatTime(item.currentTime)} / {formatTime(item.duration)} ({percent}%)
+                    </span>
+                    <span>{formatDate(item.lastWatched)}</span>
+                  </MetaRow>
+                  <ActionsRow>
+                    <ActionButton onClick={() => handleOpen(item.url)}>Open</ActionButton>
+                    <DeleteButton onClick={() => handleDelete(item.key)}>Delete</DeleteButton>
+                  </ActionsRow>
+                </Card>
+              );
+            })}
+          </ContentList>
+        )}
+        {filteredItems.length > 0 && pageCount > 1 ? (
+          <Pagination>
+            <PaginationButton type="button" onClick={handlePrevPage} disabled={currentPageIndex === 0}>
+              Previous
+            </PaginationButton>
+            <PaginationInfo>
+              Page {currentPageIndex + 1} of {pageCount}
+            </PaginationInfo>
+            <PaginationButton
+              type="button"
+              onClick={handleNextPage}
+              disabled={pageCount === 0 || currentPageIndex >= pageCount - 1}
+            >
+              Next
+            </PaginationButton>
+          </Pagination>
+        ) : null}
+        <Footer>
+          <FooterActions>
+            <SecondaryButton onClick={handleClearCompleted}>Clear Completed</SecondaryButton>
+            <SecondaryButton onClick={handleExport}>Export Data</SecondaryButton>
+          </FooterActions>
+          <FooterActions>
+            <SecondaryButton onClick={handleShare}>Share ReWatch</SecondaryButton>
+            <SecondaryButton disabled={isSettingsSaving} onClick={handleToggleDebug}>
+              {toggleEnabled ? 'Disable Debug' : 'Enable Debug'}
+            </SecondaryButton>
+          </FooterActions>
+          <DonateRow>
+            <span>Enjoy ReWatch? Help keep it improving.</span>
+            <TertiaryButton onClick={handleDonate}>Donate</TertiaryButton>
+          </DonateRow>
+        </Footer>
+        {showInfo ? (
+          <InfoBackdrop onClick={handleBackdropClick}>
+            <InfoDialog>
+              <InfoDialogHeader>
+                <InfoDialogTitle>Supported Platforms</InfoDialogTitle>
+                <InfoDialogCloseButton type="button" onClick={() => setShowInfo(false)}>
+                  ×
+                </InfoDialogCloseButton>
+              </InfoDialogHeader>
+              <InfoDialogBody>
+                <InfoList>
+                  {SUPPORTED_PLATFORMS.map((platform) => (
+                    <InfoListItem key={platform.name}>
+                      <InfoPlatform>{platform.name}</InfoPlatform>
+                      <InfoDomains>
+                        <a href={platform.domain} target="_blank" rel="noopener noreferrer">
+                          {platform.domain}
+                        </a>
+                      </InfoDomains>
+                    </InfoListItem>
+                  ))}
+                </InfoList>
+              </InfoDialogBody>
+            </InfoDialog>
+          </InfoBackdrop>
+        ) : null}
       </Layout>
     </>
   );

@@ -16,6 +16,8 @@ type SeasonEpisode = {
 const WATCH_PATH_REGEX = /\/watch\/(movie|tv)\//i;
 
 class BrocoflixDetector extends PlatformDetector {
+	static identifier = 'BrocoflixDetector';
+
 	private seasonEpisodeCache: SeasonEpisode | null;
 	private cacheKey: string | null;
 

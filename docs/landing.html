@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReWatch &mdash; Streaming Progress Tracker</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8f9fb;
+      --surface: #ffffff;
+      --text: #1f2933;
+      --accent: #4c1d95;
+      --accent-soft: #eef2ff;
+      --muted: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 56px 20px 32px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 3rem;
+      margin: 0 0 16px;
+      color: var(--accent);
+    }
+
+    header p {
+      max-width: 760px;
+      margin: 0 auto;
+      font-size: 1.25rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 80px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      margin: 48px 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 18px 40px rgba(31, 41, 51, 0.08);
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.4rem;
+      color: var(--accent);
+    }
+
+    .card ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.6;
+    }
+
+    .platforms {
+      background: var(--accent-soft);
+      border-radius: 16px;
+      padding: 32px;
+      margin: 48px 0;
+    }
+
+    .platforms h2 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+
+    .platform-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      list-style: none;
+      margin: 24px 0 0;
+      padding: 0;
+    }
+
+    .platform-list li {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 14px 18px;
+      box-shadow: 0 10px 24px rgba(76, 29, 149, 0.12);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 48px;
+    }
+
+    .cta a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .cta a.primary {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 18px 40px rgba(76, 29, 149, 0.25);
+    }
+
+    .cta a.secondary {
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 12px 32px rgba(76, 29, 149, 0.18);
+    }
+
+    .cta a:hover {
+      transform: translateY(-2px);
+    }
+
+    footer {
+      padding: 48px 20px;
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    @media (max-width: 960px) {
+      .card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      header h1 {
+        font-size: 2.3rem;
+      }
+
+      header p {
+        font-size: 1.1rem;
+      }
+
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ReWatch keeps your streaming progress in sync</h1>
+    <p>Track playback across Netflix, Disney+, HBO Max, Crunchyroll, Plex, and more with detectors built for each platform. ReWatch captures where you left off and makes it effortless to jump back in&mdash;all while staying private and local-first.</p>
+    <div class="cta">
+      <a class="primary" href="https://github.com/cristian-dust/ReWatch">Get the code</a>
+  <a class="secondary" href="./beta.md">Join the beta</a>
+    </div>
+  </header>
+  <main>
+    <section class="card-grid">
+      <article class="card">
+        <h2>Purpose-built detectors</h2>
+        <ul>
+          <li>Understand each platform&rsquo;s DOM and playback quirks.</li>
+          <li>Capture titles, seasons, episodes, and movie metadata.</li>
+          <li>Auto-detect the right video element even when ads play.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Reliable progress tracking</h2>
+        <ul>
+          <li>Heartbeat updates every few seconds while you watch.</li>
+          <li>Instant resume buttons inside the popup dashboard.</li>
+          <li>Export and back up your history whenever you need.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Privacy-first architecture</h2>
+        <ul>
+          <li>No cloud storage or external analytics.</li>
+          <li>All data stays in Chrome Storage on your device.</li>
+          <li>Transparent codebase with community contributions.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="platforms">
+      <h2>Streaming platforms covered</h2>
+      <p>ReWatch ships with detectors for popular services and continues to expand thanks to community feedback.</p>
+      <ul class="platform-list">
+        <li>Netflix</li>
+        <li>Disney+</li>
+        <li>HBO Max</li>
+        <li>Crunchyroll</li>
+        <li>Plex</li>
+        <li>HiAnime</li>
+        <li>Tubi</li>
+        <li>Filmzie</li>
+        <li>Brocoflix</li>
+      </ul>
+    </section>
+
+    <section class="card-grid">
+      <article class="card">
+        <h2>New in beta</h2>
+        <ul>
+          <li>Detector health dashboard inside the popup.</li>
+          <li>Debug logging toggle for targeted troubleshooting.</li>
+          <li>Heartbeat telemetry to surface platform regressions.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>What&rsquo;s next</h2>
+        <ul>
+          <li>Series-level grouping and richer analytics.</li>
+          <li>Optional local backup scheduling and sync connectors.</li>
+          <li>Detector sandbox harness for faster QA.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h2>Built for builders</h2>
+        <ul>
+          <li>TypeScript + React + Manifest V3 foundations.</li>
+          <li>Modular detector architecture and registry.</li>
+          <li>Open roadmap aligning short- and long-term goals.</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+  <footer>
+    <p>
+  Explore the <a href="./roadmap.md">roadmap</a>, review the <a href="./beta.md">beta guide</a>, or read the <a href="./index.html">privacy policy</a>.
+    </p>
+  </footer>
+</body>
+</html>

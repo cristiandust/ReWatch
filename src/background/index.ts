@@ -1,10 +1,76 @@
 import { StoredContentItem, StoredContentType, isStoredContentItem } from '@shared/content';
-const REWATCH_DEBUG_LOGGING = true;
+import { DEFAULT_SETTINGS, ReWatchSettings } from '@shared/settings';
+
+const SETTINGS_KEY = 'rewatch_settings';
+const DETECTOR_STATUS_KEY = 'rewatch_detector_status';
+const MAX_DETECTOR_ENTRIES = 200;
 
 const originalConsoleLog = console.log.bind(console);
+
+let settingsCache: ReWatchSettings = DEFAULT_SETTINGS;
+let settingsLoadPromise: Promise<void> | null = null;
+
+const getDebugLoggingEnabled = () => settingsCache.debugLoggingEnabled;
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object';
+
+const parseSettings = (value: unknown): ReWatchSettings | null => {
+  if (!isPlainRecord(value)) {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  const debugLoggingEnabled = typeof candidate.debugLoggingEnabled === 'boolean' ? candidate.debugLoggingEnabled : DEFAULT_SETTINGS.debugLoggingEnabled;
+  const retentionRaw = candidate.detectorTelemetryRetentionHours;
+  const heartbeatRaw = candidate.detectorHeartbeatSeconds;
+  const retention = typeof retentionRaw === 'number' && Number.isFinite(retentionRaw) ? Math.max(1, Math.floor(retentionRaw)) : DEFAULT_SETTINGS.detectorTelemetryRetentionHours;
+  const heartbeat = typeof heartbeatRaw === 'number' && Number.isFinite(heartbeatRaw) ? Math.max(30, Math.floor(heartbeatRaw)) : DEFAULT_SETTINGS.detectorHeartbeatSeconds;
+  return {
+    debugLoggingEnabled,
+    detectorTelemetryRetentionHours: retention,
+    detectorHeartbeatSeconds: heartbeat
+  };
+};
+
+const ensureSettingsLoaded = async (): Promise<void> => {
+  if (!settingsLoadPromise) {
+    settingsLoadPromise = (async () => {
+      try {
+        const storage = assertChromeStorage();
+        const result = await storage.get(SETTINGS_KEY);
+        const parsed = parseSettings(result[SETTINGS_KEY]);
+        if (parsed) {
+          settingsCache = parsed;
+        }
+      } catch (error) {
+        originalConsoleLog('[ReWatch Background] Failed to load settings:', error);
+      }
+    })();
+  }
+  await settingsLoadPromise;
+};
+
+const sanitizeSettingsUpdate = (update: Partial<ReWatchSettings>): ReWatchSettings => {
+  const debugLoggingEnabled = typeof update.debugLoggingEnabled === 'boolean' ? update.debugLoggingEnabled : settingsCache.debugLoggingEnabled;
+  const retentionRaw = update.detectorTelemetryRetentionHours;
+  const heartbeatRaw = update.detectorHeartbeatSeconds;
+  const retention = typeof retentionRaw === 'number' && Number.isFinite(retentionRaw) ? Math.max(1, Math.floor(retentionRaw)) : settingsCache.detectorTelemetryRetentionHours;
+  const heartbeat = typeof heartbeatRaw === 'number' && Number.isFinite(heartbeatRaw) ? Math.max(30, Math.floor(heartbeatRaw)) : settingsCache.detectorHeartbeatSeconds;
+  return {
+    debugLoggingEnabled,
+    detectorTelemetryRetentionHours: retention,
+    detectorHeartbeatSeconds: heartbeat
+  };
+};
+
+const persistSettings = async (next: ReWatchSettings): Promise<void> => {
+  const storage = assertChromeStorage();
+  await storage.set({ [SETTINGS_KEY]: next });
+  settingsCache = next;
+};
+
 console.log = (...args: unknown[]) => {
   if (
-    REWATCH_DEBUG_LOGGING ||
+    getDebugLoggingEnabled() ||
     args.length === 0 ||
     typeof args[0] !== 'string' ||
     !args[0].startsWith('[ReWatch')
@@ -12,6 +78,8 @@ console.log = (...args: unknown[]) => {
     originalConsoleLog(...args);
   }
 };
+
+void ensureSettingsLoaded();
 
 console.log('[ReWatch Background] Service worker started');
 
@@ -29,6 +97,30 @@ type SaveProgressPayload = {
   originalTitle?: string;
 };
 
+type DetectorStatusKind =
+  | 'detecting'
+  | 'detected'
+  | 'attached'
+  | 'no-video'
+  | 'metadata'
+  | 'error'
+  | 'navigation';
+
+type DetectorStatusEntry = {
+  platform?: string | null;
+  detector?: string | null;
+  status: DetectorStatusKind;
+  url?: string | null;
+  details?: Record<string, unknown>;
+  timestamp: number;
+};
+
+type DetectorStatusPayload = Omit<DetectorStatusEntry, 'timestamp'> & {
+  timestamp?: number;
+};
+
+const DETECTOR_STATUS_VALUES: readonly DetectorStatusKind[] = ['detecting', 'detected', 'attached', 'no-video', 'metadata', 'error', 'navigation'];
+
 type RuntimeRequest =
   | {
       action: 'saveProgress';
@@ -42,6 +134,20 @@ type RuntimeRequest =
       action: 'debugLog';
       message: string;
       data?: Record<string, unknown>;
+    }
+  | {
+      action: 'getSettings';
+    }
+  | {
+      action: 'updateSettings';
+      settings: Partial<ReWatchSettings>;
+    }
+  | {
+      action: 'detectorStatus';
+      status: DetectorStatusPayload;
+    }
+  | {
+      action: 'getDetectorStatus';
     };
 
 type ChromeStorageArea = {
@@ -60,6 +166,7 @@ type ChromeRuntime = {
       ) => void
     ) => void;
   };
+  sendMessage?: (message: { action: string; [key: string]: unknown }) => void;
 };
 
 type ChromeApi = {
@@ -81,6 +188,114 @@ const assertChromeStorage = (): ChromeStorageArea => {
     throw new Error('Chrome storage API unavailable');
   }
   return storage;
+};
+
+const normalizeNullableString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const normalizeDetails = (value: unknown): Record<string, unknown> | undefined => {
+  if (isPlainRecord(value)) {
+    return value;
+  }
+  return undefined;
+};
+
+const isDetectorStatusEntry = (value: unknown): value is DetectorStatusEntry => {
+  if (!isPlainRecord(value)) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  const status = candidate.status;
+  const timestamp = candidate.timestamp;
+  if (typeof status !== 'string' || !DETECTOR_STATUS_VALUES.includes(status as DetectorStatusKind)) {
+    return false;
+  }
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
+    return false;
+  }
+  const platform = candidate.platform;
+  const detector = candidate.detector;
+  const url = candidate.url;
+  const details = candidate.details;
+  if (platform !== undefined && platform !== null && typeof platform !== 'string') {
+    return false;
+  }
+  if (detector !== undefined && detector !== null && typeof detector !== 'string') {
+    return false;
+  }
+  if (url !== undefined && url !== null && typeof url !== 'string') {
+    return false;
+  }
+  if (details !== undefined && !isPlainRecord(details)) {
+    return false;
+  }
+  return true;
+};
+
+const readDetectorEntries = (value: unknown): DetectorStatusEntry[] => {
+  if (Array.isArray(value)) {
+    return value.filter(isDetectorStatusEntry);
+  }
+  if (isDetectorStatusEntry(value)) {
+    return [value];
+  }
+  return [];
+};
+
+const detectorKey = (platform: string | null | undefined, detector: string | null | undefined): string => {
+  const normalizedPlatform = typeof platform === 'string' ? platform.trim().toLowerCase() : '';
+  const normalizedDetector = typeof detector === 'string' ? detector.trim().toLowerCase() : '';
+  return `${normalizedPlatform}|${normalizedDetector}`;
+};
+
+const pruneDetectorEntries = (entries: DetectorStatusEntry[], retentionHours: number): DetectorStatusEntry[] => {
+  const retention = Math.max(1, retentionHours);
+  const cutoff = Date.now() - retention * 3600000;
+  return entries.filter((entry) => entry.timestamp >= cutoff);
+};
+
+const mergeDetectorEntry = (entries: DetectorStatusEntry[], entry: DetectorStatusEntry): DetectorStatusEntry[] => {
+  const key = detectorKey(entry.platform, entry.detector);
+  const filtered = entries.filter((existing) => detectorKey(existing.platform, existing.detector) !== key);
+  return [...filtered, entry];
+};
+
+const storeDetectorStatus = async (payload: DetectorStatusPayload): Promise<void> => {
+  const statusValue = typeof payload.status === 'string' && DETECTOR_STATUS_VALUES.includes(payload.status as DetectorStatusKind)
+    ? (payload.status as DetectorStatusKind)
+    : 'detecting';
+  const entry: DetectorStatusEntry = {
+    platform: payload.platform === null ? null : normalizeNullableString(payload.platform),
+    detector: payload.detector === null ? null : normalizeNullableString(payload.detector),
+    status: statusValue,
+    url: payload.url === null ? null : normalizeNullableString(payload.url),
+    details: normalizeDetails(payload.details),
+    timestamp: typeof payload.timestamp === 'number' && Number.isFinite(payload.timestamp) ? payload.timestamp : Date.now()
+  };
+  const storage = assertChromeStorage();
+  const existingResult = await storage.get(DETECTOR_STATUS_KEY);
+  const existingEntries = readDetectorEntries(existingResult[DETECTOR_STATUS_KEY]);
+  const pruned = pruneDetectorEntries(existingEntries, settingsCache.detectorTelemetryRetentionHours);
+  const merged = mergeDetectorEntry(pruned, entry);
+  const capped = merged.length > MAX_DETECTOR_ENTRIES ? merged.slice(-MAX_DETECTOR_ENTRIES) : merged;
+  await storage.set({ [DETECTOR_STATUS_KEY]: capped });
+};
+
+const getDetectorStatusEntries = async (): Promise<DetectorStatusEntry[]> => {
+  const storage = assertChromeStorage();
+  const result = await storage.get(DETECTOR_STATUS_KEY);
+  const entries = readDetectorEntries(result[DETECTOR_STATUS_KEY]);
+  const pruned = pruneDetectorEntries(entries, settingsCache.detectorTelemetryRetentionHours);
+  const capped = pruned.length > MAX_DETECTOR_ENTRIES ? pruned.slice(-MAX_DETECTOR_ENTRIES) : pruned;
+  if (capped.length !== entries.length) {
+    await storage.set({ [DETECTOR_STATUS_KEY]: capped });
+  }
+  return [...capped].sort((a, b) => b.timestamp - a.timestamp);
 };
 
 const normalizeUrlForComparison = (inputUrl: string | null | undefined): string | null => {
@@ -447,6 +662,59 @@ if (chromeApi?.runtime?.onMessage) {
     if (request.action === 'debugLog') {
       console.log('[ReWatch Background Debug]', request.message, request.data);
       sendResponse({ success: true });
+      return true;
+    }
+    if (request.action === 'getSettings') {
+      ensureSettingsLoaded()
+        .then(() => {
+          sendResponse({ success: true, data: { ...settingsCache } });
+        })
+        .catch((error: unknown) => {
+          console.error('[ReWatch Background] Error loading settings:', error);
+          sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+        });
+      return true;
+    }
+    if (request.action === 'updateSettings') {
+      ensureSettingsLoaded()
+        .then(async () => {
+          const next = sanitizeSettingsUpdate(request.settings);
+          await persistSettings(next);
+          try {
+            chromeApi?.runtime?.sendMessage?.({ action: 'settingsUpdated', settings: next });
+          } catch (error) {
+            originalConsoleLog('[ReWatch Background] Broadcast settings update failed:', error);
+          }
+          sendResponse({ success: true, data: { ...settingsCache } });
+        })
+        .catch((error: unknown) => {
+          console.error('[ReWatch Background] Error updating settings:', error);
+          sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+        });
+      return true;
+    }
+    if (request.action === 'detectorStatus') {
+      ensureSettingsLoaded()
+        .then(async () => {
+          await storeDetectorStatus(request.status);
+          sendResponse({ success: true });
+        })
+        .catch((error: unknown) => {
+          console.error('[ReWatch Background] Error storing detector status:', error);
+          sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+        });
+      return true;
+    }
+    if (request.action === 'getDetectorStatus') {
+      ensureSettingsLoaded()
+        .then(async () => {
+          const entries = await getDetectorStatusEntries();
+          sendResponse({ success: true, data: entries });
+        })
+        .catch((error: unknown) => {
+          console.error('[ReWatch Background] Error retrieving detector status:', error);
+          sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
+        });
       return true;
     }
     if (request.action === 'getProgress') {

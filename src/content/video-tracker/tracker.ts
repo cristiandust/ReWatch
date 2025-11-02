@@ -1,5 +1,7 @@
+import { DEFAULT_SETTINGS } from '@shared/settings';
 import { findAllVideoElements } from '../core/dom';
 import { getPageTitle, resetCachedTitle } from '../core/title';
+import type { ReWatchSettings } from '@shared/settings';
 import type { PlatformDetector, EpisodeInference } from '../platform-detectors/base';
 import type { PlatformRegistry } from '../core/platform-registry';
 import type { ReWatchNamespace } from '../core/namespace';
@@ -22,6 +24,30 @@ type RuntimeProgress = {
 	percentComplete: number;
 };
 
+type RuntimeResponse<T = unknown> = {
+	success: boolean;
+	data?: T;
+	error?: string;
+};
+
+type DetectorStatusKind =
+	| 'detecting'
+	| 'detected'
+	| 'attached'
+	| 'no-video'
+	| 'metadata'
+	| 'error'
+	| 'navigation';
+
+type DetectorStatusPayload = {
+	platform?: string | null;
+	detector?: string | null;
+	status: DetectorStatusKind;
+	url?: string | null;
+	details?: Record<string, unknown>;
+	timestamp?: number;
+};
+
 type RuntimeMessage =
 	| {
 		action: 'saveProgress';
@@ -35,11 +61,18 @@ type RuntimeMessage =
 		action: 'debugLog';
 		message: string;
 		data?: Record<string, unknown>;
+	}
+	| {
+		action: 'getSettings';
+	}
+	| {
+		action: 'detectorStatus';
+		status: DetectorStatusPayload;
 	};
 
 type ChromeRuntime = {
 	id?: string;
-	sendMessage: (message: RuntimeMessage, responseCallback?: (response: { success: boolean; data?: RuntimeProgress }) => void) => void;
+	sendMessage: <T = unknown>(message: RuntimeMessage, responseCallback?: (response: RuntimeResponse<T>) => void) => void;
 	lastError?: { message?: string } | null;
 };
 
@@ -90,9 +123,23 @@ type VideoTrackerMetadata = {
 	season?: number | null;
 };
 
-type ResumeResponse = {
-	success: boolean;
-	data?: RuntimeProgress;
+const isPlainObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const parseSettings = (value: unknown): ReWatchSettings | null => {
+	if (!isPlainObject(value)) {
+		return null;
+	}
+	const candidate = value as Record<string, unknown>;
+	const debugLoggingEnabled = typeof candidate.debugLoggingEnabled === 'boolean' ? candidate.debugLoggingEnabled : DEFAULT_SETTINGS.debugLoggingEnabled;
+	const retentionRaw = candidate.detectorTelemetryRetentionHours;
+	const heartbeatRaw = candidate.detectorHeartbeatSeconds;
+	const retention = typeof retentionRaw === 'number' && Number.isFinite(retentionRaw) ? Math.max(1, Math.floor(retentionRaw)) : DEFAULT_SETTINGS.detectorTelemetryRetentionHours;
+	const heartbeat = typeof heartbeatRaw === 'number' && Number.isFinite(heartbeatRaw) ? Math.max(30, Math.floor(heartbeatRaw)) : DEFAULT_SETTINGS.detectorHeartbeatSeconds;
+	return {
+		debugLoggingEnabled,
+		detectorTelemetryRetentionHours: retention,
+		detectorHeartbeatSeconds: heartbeat
+	};
 };
 
 const getNamespace = (): TrackerNamespaceBase | null => {
@@ -166,6 +213,10 @@ class VideoTracker {
 	private readonly boundOnLoadedMetadata: () => void;
 	private readonly boundOnDurationChange: () => void;
 	private readonly boundOnEmptied: () => void;
+	private detectorHeartbeatInterval: number | null;
+	private detectorHeartbeatMs: number;
+	private lastDetectorStatusSignature: string | null;
+	private detectorSettingsRequested: boolean;
 
 	constructor() {
 		this.videoElement = null;
@@ -189,10 +240,15 @@ class VideoTracker {
 		this.boundOnLoadedMetadata = () => this.handlePlaybackContextUpdate('loadedmetadata');
 		this.boundOnDurationChange = () => this.handlePlaybackContextUpdate('durationchange');
 		this.boundOnEmptied = () => this.handlePlaybackContextUpdate('emptied');
+		this.detectorHeartbeatInterval = null;
+		this.detectorHeartbeatMs = DEFAULT_SETTINGS.detectorHeartbeatSeconds * 1000;
+		this.lastDetectorStatusSignature = null;
+		this.detectorSettingsRequested = false;
 	}
 
 	init(): void {
 		console.log('[ReWatch] Initializing video tracker...');
+		this.requestDetectorSettings();
 		this.setupNavigationListeners();
 		this.setupMutationObserver();
 		this.detectVideo();
@@ -204,10 +260,12 @@ class VideoTracker {
 	}
 
 	detectVideo(): void {
+		this.requestDetectorSettings();
 		const videos = findAllVideoElements();
 		console.log('[ReWatch] Found', videos.length, 'video element(s) (including shadow DOM)');
 		const platformDetector = this.getPlatformDetector();
 		const platformName = platformDetector?.getPlatformName?.() ?? null;
+		this.sendDetectorStatus('detecting', { detector: platformDetector, platform: platformName });
 		let candidateVideos = videos;
 		if (platformDetector?.filterVideoElements) {
 			try {
@@ -230,6 +288,7 @@ class VideoTracker {
 				window.setTimeout(() => this.detectVideo(), 2000);
 			} else {
 				console.log('[ReWatch] Max detection attempts reached, giving up');
+				this.sendDetectorStatus('no-video', { detector: platformDetector, platform: platformName });
 			}
 			return;
 		}
@@ -271,6 +330,7 @@ class VideoTracker {
 				window.setTimeout(() => this.detectVideo(), 2000);
 			} else {
 				console.log('[ReWatch] Max detection attempts reached, giving up');
+				this.sendDetectorStatus('no-video', { detector: platformDetector, platform: platformName });
 			}
 			return;
 		}
@@ -281,6 +341,7 @@ class VideoTracker {
 			const message = error instanceof Error ? error.message : String(error);
 			console.log('[ReWatch] Selected video but failed to measure size:', message);
 		}
+		this.sendDetectorStatus('detected', { detector: platformDetector, platform: platformName });
 		this.attachToVideo(mainVideo);
 	}
 
@@ -382,6 +443,7 @@ class VideoTracker {
 		this.lastMetadataSignature = null;
 		this.lastVideoSrc = this.videoElement && typeof this.videoElement.currentSrc === 'string' ? this.videoElement.currentSrc : null;
 		this.lastSavedTime = 0;
+		this.lastDetectorStatusSignature = null;
 		if (window.self !== window.top) {
 			this.requestParentContext();
 		}
@@ -390,6 +452,8 @@ class VideoTracker {
 				clearTimeout(this.pendingNavigationDetection);
 				this.pendingNavigationDetection = null;
 			}
+			this.sendDetectorStatus('navigation', undefined, { dedupe: false });
+			this.clearDetectorHeartbeat();
 			this.pendingNavigationDetection = window.setTimeout(() => {
 				this.pendingNavigationDetection = null;
 				this.detectionAttempts = 0;
@@ -430,6 +494,7 @@ class VideoTracker {
 			clearTimeout(this.resumeCheckTimeout);
 			this.resumeCheckTimeout = null;
 		}
+		this.clearDetectorHeartbeat();
 		this.hasPerformedInitialResumeCheck = false;
 		this.videoElement = null;
 	}
@@ -452,8 +517,10 @@ class VideoTracker {
 		video.addEventListener('loadedmetadata', this.boundOnLoadedMetadata);
 		video.addEventListener('durationchange', this.boundOnDurationChange);
 		video.addEventListener('emptied', this.boundOnEmptied);
+		this.sendDetectorStatus('attached', undefined, { dedupe: false });
 		const delay = window.self !== window.top ? 500 : 0;
 		this.scheduleResumeCheck(delay);
+		this.scheduleDetectorHeartbeat();
 	}
 
 	private extractMetadata(): VideoTrackerMetadata | null {
@@ -1013,6 +1080,22 @@ class VideoTracker {
 				console.log('[ReWatch] Playback metadata changed:', { previousSignature, metadataSignature });
 				this.scheduleResumeCheck(800);
 			}
+			const metadataDetails: Record<string, unknown> = {};
+			if (metadata.type) {
+				metadataDetails.type = metadata.type;
+			}
+			if (typeof metadata.episodeNumber === 'number' && Number.isFinite(metadata.episodeNumber)) {
+				metadataDetails.episodeNumber = metadata.episodeNumber;
+			}
+			if (typeof metadata.seasonNumber === 'number' && Number.isFinite(metadata.seasonNumber)) {
+				metadataDetails.seasonNumber = metadata.seasonNumber;
+			}
+			if (metadata.seriesTitle) {
+				metadataDetails.seriesTitle = metadata.seriesTitle;
+			}
+			if (Object.keys(metadataDetails).length > 0) {
+				this.sendDetectorStatus('metadata', { details: metadataDetails }, { dedupe: false });
+			}
 		}
 		const progressData = {
 			...metadata,
@@ -1117,7 +1200,7 @@ class VideoTracker {
 			if (!resumeUrl) {
 				return;
 			}
-			chromeRuntime.sendMessage({ action: 'getProgress', url: resumeUrl }, (response: ResumeResponse) => {
+			chromeRuntime.sendMessage<RuntimeProgress>({ action: 'getProgress', url: resumeUrl }, (response) => {
 				if (chromeRuntime.lastError) {
 					const message = chromeRuntime.lastError.message ?? '';
 					console.log('[ReWatch] Could not check saved progress:', message);
@@ -1141,6 +1224,129 @@ class VideoTracker {
 			return;
 		}
 		void savedTime;
+	}
+
+	private getDetectorIdentifier(detector: PlatformDetector | null | undefined): string | null {
+		if (!detector) {
+			return null;
+		}
+		const extended = detector as { getIdentifier?: () => string };
+		const explicitIdentifier = typeof extended.getIdentifier === 'function' ? extended.getIdentifier() : null;
+		if (typeof explicitIdentifier === 'string' && explicitIdentifier.trim().length > 0) {
+			return explicitIdentifier.trim();
+		}
+		const constructorName = typeof detector.constructor === 'function' ? detector.constructor.name : '';
+		if (typeof constructorName === 'string' && constructorName.trim().length > 0 && constructorName !== 'Object') {
+			return constructorName.trim();
+		}
+		return null;
+	}
+
+	private sendDetectorStatus(
+		status: DetectorStatusKind,
+		overrides?: {
+			detector?: PlatformDetector | null;
+			platform?: string | null;
+			url?: string | null;
+			details?: Record<string, unknown>;
+		},
+		options?: { dedupe?: boolean }
+	): void {
+		const runtime = getChromeRuntime();
+		if (!runtime || !runtime.id) {
+			return;
+		}
+		const detector = overrides?.detector ?? this.platformDetector;
+		const platformName = overrides?.platform ?? detector?.getPlatformName?.() ?? null;
+		const detectorIdentifier = this.getDetectorIdentifier(detector);
+		const url = overrides?.url ?? window.location.href;
+		const rawDetails = overrides?.details;
+		const details = rawDetails && isPlainObject(rawDetails) ? rawDetails : undefined;
+		const signature = `${status}|${platformName ?? ''}|${detectorIdentifier ?? ''}`;
+		const dedupe = options?.dedupe !== false;
+		if (dedupe && signature === this.lastDetectorStatusSignature) {
+			return;
+		}
+		this.lastDetectorStatusSignature = signature;
+		const payload: DetectorStatusPayload = {
+			status,
+			platform: platformName ?? null,
+			detector: detectorIdentifier,
+			url
+		};
+		if (details && Object.keys(details).length > 0) {
+			payload.details = details;
+		}
+		try {
+			runtime.sendMessage({ action: 'detectorStatus', status: payload }, () => undefined);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.log('[ReWatch] Detector status send failed:', message);
+		}
+	}
+
+	private clearDetectorHeartbeat(): void {
+		if (this.detectorHeartbeatInterval) {
+			clearInterval(this.detectorHeartbeatInterval);
+			this.detectorHeartbeatInterval = null;
+		}
+	}
+
+	private scheduleDetectorHeartbeat(): void {
+		this.clearDetectorHeartbeat();
+		if (!this.videoElement) {
+			return;
+		}
+		const intervalMs = Number.isFinite(this.detectorHeartbeatMs) && this.detectorHeartbeatMs > 0 ? this.detectorHeartbeatMs : DEFAULT_SETTINGS.detectorHeartbeatSeconds * 1000;
+		this.detectorHeartbeatInterval = window.setInterval(() => {
+			if (!this.videoElement) {
+				this.clearDetectorHeartbeat();
+				return;
+			}
+			this.sendDetectorStatus('attached', undefined, { dedupe: false });
+		}, intervalMs);
+	}
+
+	private applyDetectorSettings(settings: ReWatchSettings | null): void {
+		if (!settings) {
+			return;
+		}
+		const heartbeatSeconds = typeof settings.detectorHeartbeatSeconds === 'number' && Number.isFinite(settings.detectorHeartbeatSeconds)
+			? Math.max(30, Math.floor(settings.detectorHeartbeatSeconds))
+			: DEFAULT_SETTINGS.detectorHeartbeatSeconds;
+		this.detectorHeartbeatMs = heartbeatSeconds * 1000;
+		if (this.videoElement) {
+			this.scheduleDetectorHeartbeat();
+		}
+	}
+
+	private requestDetectorSettings(): void {
+		if (this.detectorSettingsRequested) {
+			return;
+		}
+		const runtime = getChromeRuntime();
+		if (!runtime || !runtime.id) {
+			return;
+		}
+		this.detectorSettingsRequested = true;
+		try {
+			runtime.sendMessage<ReWatchSettings>({ action: 'getSettings' }, (response) => {
+				if (!response || !response.success) {
+					this.detectorSettingsRequested = false;
+					return;
+				}
+				const parsed = parseSettings(response.data);
+				if (!parsed) {
+					this.detectorSettingsRequested = false;
+					return;
+				}
+				this.applyDetectorSettings(parsed);
+			});
+		} catch (error) {
+			this.detectorSettingsRequested = false;
+			const message = error instanceof Error ? error.message : String(error);
+			console.log('[ReWatch] Failed to request settings:', message);
+		}
 	}
 
 	private checkDetectors(hostname: string, registry: PlatformRegistry<PlatformDetector>): PlatformDetector | null {

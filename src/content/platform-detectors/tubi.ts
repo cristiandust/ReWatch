@@ -11,6 +11,8 @@ type ReWatchWindow = typeof window & {
 const MIN_DURATION_SECONDS = 60;
 
 class TubiDetector extends PlatformDetector {
+	static identifier = 'TubiDetector';
+
 	canDetect(): boolean {
 		return /(^|\.)tubitv\.com$/i.test(this.hostname);
 	}

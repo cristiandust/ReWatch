@@ -34,6 +34,8 @@ type SeasonEpisodeInfo = {
 };
 
 class DisneyPlusDetector extends PlatformDetector {
+	static identifier = 'DisneyPlusDetector';
+
 	canDetect(): boolean {
 		return this.hostname.includes('disneyplus');
 	}

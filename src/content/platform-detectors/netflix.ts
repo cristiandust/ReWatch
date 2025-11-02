@@ -36,6 +36,8 @@ type NetflixParseResult = {
 };
 
 class NetflixDetector extends PlatformDetector {
+	static identifier = 'NetflixDetector';
+
 	private parsedFalcorCache: UnknownRecord | null;
 	private parsedReactContext: UnknownRecord | null;
 	private scriptsParsed: boolean;

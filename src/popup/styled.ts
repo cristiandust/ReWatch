@@ -439,13 +439,16 @@ const InfoDialogBody = styled.div`
   overflow-y: auto;
 `;
 
-const InfoList = styled.div`
+const InfoList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 `;
 
-const InfoListItem = styled.div`
+const InfoListItem = styled.li`
   display: flex;
   flex-direction: column;
   background: rgba(100, 181, 246, 0.08);
@@ -482,6 +485,168 @@ const InfoActionRow = styled.div`
   justify-content: flex-end;
 `;
 
+const SettingsCard = styled.div`
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 14px 30px rgba(51, 77, 92, 0.1);
+`;
+
+const SettingsRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+`;
+
+const SettingsLabel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #2f3a40;
+
+  span {
+    font-size: 11px;
+    color: #607d8b;
+  }
+`;
+
+const ToggleButton = styled.button<{ $enabled: boolean }>`
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: ${({ $enabled }) => ($enabled ? 'linear-gradient(180deg, #64b5f6 0%, #4db6ac 100%)' : '#d8dee6')};
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease;
+`;
+
+const ToggleHandle = styled.span<{ $enabled: boolean }>`
+  position: absolute;
+  top: 3px;
+  left: ${({ $enabled }) => ($enabled ? '26px' : '3px')};
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(15, 42, 46, 0.2);
+  transition: left 0.2s ease;
+`;
+
+const DetectorSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const DetectorHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const DetectorTitle = styled.h2`
+  margin: 0;
+  font-size: 14px;
+  color: #2f3a40;
+`;
+
+const DetectorRefresh = styled.button`
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(79, 195, 196, 0.15);
+  color: #4db6ac;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const DetectorList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+`;
+
+const DetectorItem = styled.div`
+  background: #f8fbfc;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(100, 181, 246, 0.18);
+`;
+
+const DetectorRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #2f3a40;
+`;
+
+const DetectorBadge = styled.span<{ $tone?: 'success' | 'warn' | 'info' | 'error' }>`
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: ${({ $tone }) => {
+    if ($tone === 'success') {
+      return 'rgba(129, 199, 132, 0.2)';
+    }
+    if ($tone === 'warn') {
+      return 'rgba(255, 213, 79, 0.2)';
+    }
+    if ($tone === 'error') {
+      return 'rgba(229, 115, 115, 0.2)';
+    }
+    return 'rgba(100, 181, 246, 0.2)';
+  }};
+  color: ${({ $tone }) => {
+    if ($tone === 'success') {
+      return '#2e7d32';
+    }
+    if ($tone === 'warn') {
+      return '#f9a825';
+    }
+    if ($tone === 'error') {
+      return '#c62828';
+    }
+    return '#0f2a2e';
+  }};
+`;
+
+const DetectorMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11px;
+  color: #607d8b;
+`;
+
+const DetectorEmpty = styled.div`
+  text-align: center;
+  font-size: 12px;
+  color: rgba(96, 125, 139, 0.7);
+  padding: 20px 0;
+`;
+
 export {
   ActionButton,
   ActionsRow,
@@ -490,6 +655,16 @@ export {
   CardTitle,
   ContentList,
   DeleteButton,
+  DetectorBadge,
+  DetectorEmpty,
+  DetectorHeader,
+  DetectorItem,
+  DetectorList,
+  DetectorMeta,
+  DetectorRefresh,
+  DetectorRow,
+  DetectorSection,
+  DetectorTitle,
   DonateRow,
   EmptyState,
   EpisodeBadge,
@@ -498,39 +673,43 @@ export {
   FilterRow,
   Footer,
   FooterActions,
+  GlobalStyle,
   Header,
   HeaderSurface,
+  HeaderMeta,
+  InfoActionRow,
+  InfoBackdrop,
+  InfoButton,
+  InfoDialog,
+  InfoDialogBody,
+  InfoDialogCloseButton,
+  InfoDialogHeader,
+  InfoDialogTitle,
+  InfoDomains,
+  InfoList,
+  InfoListItem,
+  InfoPlatform,
   Layout,
   MetaRow,
+  Pagination,
+  PaginationButton,
+  PaginationInfo,
   PlatformLabel,
   ProgressBar,
   ProgressFill,
   SearchInput,
+  SearchRow,
   SecondaryButton,
+  SettingsCard,
+  SettingsLabel,
+  SettingsRow,
   StatCard,
   StatLabel,
   StatValue,
   Stats,
   Subtitle,
   Title,
-  TertiaryButton,
-  Pagination,
-  PaginationButton,
-  PaginationInfo,
-  HeaderMeta,
-  InfoButton,
-  SearchRow,
-  InfoBackdrop,
-  InfoDialog,
-  InfoDialogHeader,
-  InfoDialogTitle,
-  InfoDialogCloseButton,
-  InfoDialogBody,
-  InfoList,
-  InfoListItem,
-  InfoPlatform,
-  InfoDomains,
-  InfoActionRow
+  ToggleButton,
+  ToggleHandle,
+  TertiaryButton
 };
-
-export { GlobalStyle };

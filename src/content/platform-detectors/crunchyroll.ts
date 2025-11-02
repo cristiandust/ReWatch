@@ -9,6 +9,8 @@ type ReWatchWindow = typeof window & {
 };
 
 class CrunchyrollDetector extends PlatformDetector {
+	static identifier = 'CrunchyrollDetector';
+
 	canDetect(): boolean {
 		return /crunchyroll\.com$/i.test(this.hostname) || /\.crunchyroll\.com$/i.test(this.hostname);
 	}

@@ -9,6 +9,8 @@ type HboWindow = typeof window & {
 };
 
 class HBOMaxDetector extends PlatformDetector {
+	static identifier = 'HBOMaxDetector';
+
 	canDetect(): boolean {
 		const normalized = this.hostname.toLowerCase();
 		if (normalized.includes('hbomax')) {

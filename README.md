@@ -16,9 +16,10 @@ ReWatch is a Chrome extension that automatically captures playback progress on N
 8. [Testing](#testing)
 9. [Build & packaging](#build--packaging)
 10. [Troubleshooting](#troubleshooting)
-11. [Roadmap](#roadmap)
-12. [Privacy](#privacy)
-13. [License](#license)
+11. [Beta program](#beta-program)
+12. [Roadmap](#roadmap)
+13. [Privacy](#privacy)
+14. [License](#license)
 
 ---
 
@@ -150,7 +151,13 @@ Ensure the archive only contains the files produced by the build pipeline plus r
 - **Export blocked**: verify browser policies allow downloads initiated by extensions.
 - **Stale entries**: use the popup delete action or clear Chrome Storage under the extension ID.
 
+## Beta program
+
+Follow the [beta guide](docs/beta.md) to install early builds, report findings, and resolve common setup issues. The doc outlines build commands, feedback channels, and troubleshooting steps, while [docs/landing.html](docs/landing.html) provides a shareable overview for collaborators.
+
 ## Roadmap
+
+The living roadmap in [docs/roadmap.md](docs/roadmap.md) tracks short-, near-, and long-term milestones. Highlights include:
 
 - Series grouping and richer analytics in the popup.
 - Optional sync connectors for user-managed backups.
